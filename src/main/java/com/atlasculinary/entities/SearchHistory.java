@@ -24,9 +24,6 @@ public class SearchHistory {
     @Column(name = "history_id")
     private Long historyId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
-    private Account account;
 
     @Column(name = "keyword", nullable = false, length = 500)
     private String keyword;
@@ -34,6 +31,12 @@ public class SearchHistory {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "filters", columnDefinition = "json")
     private Map<String, Object> filters;
+
+    @Column(name = "user_id")
+    private UUID userId;
+
+    @Column(name = "session_identifier", length = 255)
+    private String sessionIdentifier;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
