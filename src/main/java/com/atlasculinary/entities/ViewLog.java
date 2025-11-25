@@ -20,11 +20,14 @@ public class ViewLog {
     @Column(name = "restaurant_id", nullable = false)
     private UUID restaurantId;
 
-    @Column(name = "timestamp", nullable = false)
-    private LocalDateTime timestamp = LocalDateTime.now();
+    @Column(name = "dish_id", nullable = false)
+    private UUID dishId;
 
     @Column(name = "event_type", length = 20, nullable = false)
     private EventType eventType;
+
+    @Column(name = "timestamp", nullable = false)
+    private LocalDateTime timestamp = LocalDateTime.now();
 
     @Column(name = "user_id")
     private UUID userId;
