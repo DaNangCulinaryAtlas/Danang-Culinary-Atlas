@@ -1,6 +1,9 @@
 package com.atlasculinary.repositories;
 
 import com.atlasculinary.entities.Account;
+import com.atlasculinary.enums.AccountStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,4 +19,18 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
   
   @Query("SELECT COUNT(a) FROM Account a JOIN a.accountRoleMapSet arm JOIN arm.role r WHERE r.roleName = :roleName")
   Long countByRoleName(@Param("roleName") String roleName);
+  
+  @Query("SELECT DISTINCT a FROM Account a " +
+         "JOIN a.accountRoleMapSet arm " +
+         "JOIN arm.role r " +
+         "WHERE r.roleName = :roleName " +
+         "AND (:status IS NULL OR a.status = :status) " +
+         "AND (:search IS NULL OR :search = '' OR " +
+         "LOWER(a.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+         "LOWER(a.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+         "ORDER BY a.createdAt DESC")
+  Page<Account> findAccountsByRole(@Param("roleName") String roleName, 
+                                    @Param("status") AccountStatus status, 
+                                    @Param("search") String search, 
+                                    Pageable pageable);
 }
