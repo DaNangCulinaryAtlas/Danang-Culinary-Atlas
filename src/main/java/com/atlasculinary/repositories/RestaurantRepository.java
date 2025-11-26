@@ -92,4 +92,15 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
             Pageable pageable);
 
     Page<Restaurant> findByApprovalStatusAndNameContainingIgnoreCase(ApprovalStatus approvalStatus, String restaurantName, Pageable pageable);
+    
+    Long countByApprovalStatus(ApprovalStatus approvalStatus);
+    
+    @Query("SELECT new com.atlasculinary.dtos.RestaurantCountByTagDto(rt.tagId, rt.name, COUNT(r)) " +
+           "FROM Restaurant r " +
+           "JOIN r.restaurantTagMapSet rtm " +
+           "JOIN rtm.restaurantTag rt " +
+           "WHERE r.approvalStatus = :approvalStatus " +
+           "GROUP BY rt.tagId, rt.name " +
+           "ORDER BY COUNT(r) DESC")
+    List<com.atlasculinary.dtos.RestaurantCountByTagDto> countRestaurantsByTag(@Param("approvalStatus") ApprovalStatus approvalStatus);
 }

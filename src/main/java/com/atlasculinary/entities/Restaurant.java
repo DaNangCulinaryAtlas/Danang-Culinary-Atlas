@@ -86,16 +86,16 @@ public class Restaurant {
     @OneToOne(mappedBy = "restaurant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private RestaurantStats restaurantStats;
 
-//    @OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
-//    @JsonIgnore
-//    private Set<RestaurantTagMap> tagMaps;
-//
-//    @Transient
-//    public List<RestaurantTagDto> getTagDtos() {
-//        return tagMaps == null ? List.of() :
-//                tagMaps.stream()
-//                        .map(RestaurantTagMap::getRestaurantTag)
-//                        .map(tag -> new RestaurantTagDto(tag.getTagId(), tag.getName()))
-//                        .toList();
-//    }
+    @OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Set<RestaurantTagMap> restaurantTagMapSet;
+
+    @Transient
+    public List<RestaurantTagDto> getTagDtos() {
+        return restaurantTagMapSet == null ? List.of() :
+                restaurantTagMapSet.stream()
+                        .map(rtm -> rtm.getRestaurantTag())
+                        .map(tag -> new RestaurantTagDto(tag.getTagId(), tag.getName()))
+                        .toList();
+    }
 }
