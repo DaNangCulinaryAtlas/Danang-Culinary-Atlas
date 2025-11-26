@@ -95,6 +95,8 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
     
     Long countByApprovalStatus(ApprovalStatus approvalStatus);
     
+    Long countByOwnerAccount(com.atlasculinary.entities.Account ownerAccount);
+    
     @Query("SELECT new com.atlasculinary.dtos.RestaurantCountByTagDto(rt.tagId, rt.name, COUNT(r)) " +
            "FROM Restaurant r " +
            "JOIN r.restaurantTagMapSet rtm " +
