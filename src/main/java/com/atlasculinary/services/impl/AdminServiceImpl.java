@@ -3,6 +3,7 @@ package com.atlasculinary.services.impl;
 import com.atlasculinary.dtos.AdminDto;
 import com.atlasculinary.dtos.AdminOverviewDto;
 import com.atlasculinary.dtos.RestaurantCountByTagDto;
+import com.atlasculinary.dtos.RestaurantLocationDto;
 import com.atlasculinary.enums.ApprovalStatus;
 import com.atlasculinary.mappers.AdminMapper;
 import com.atlasculinary.repositories.AccountRepository;
@@ -13,6 +14,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class AdminServiceImpl implements AdminService {
@@ -59,4 +62,29 @@ public class AdminServiceImpl implements AdminService {
     public List<RestaurantCountByTagDto> getRestaurantCountByTag() {
         return restaurantRepository.countRestaurantsByTag(ApprovalStatus.APPROVED);
     }
+    
+    @Override
+    @Transactional
+    public List<RestaurantLocationDto> searchRestaurantsByLocation(Integer wardId, Integer districtId, Integer provinceId) {
+        List<Object[]> results;
+        
+        if (wardId != null) {
+            results = restaurantRepository.findRestaurantsByWardId(wardId);
+        } else if (districtId != null) {
+            results = restaurantRepository.findRestaurantsByDistrictId(districtId);
+        } else if (provinceId != null) {
+            results = restaurantRepository.findRestaurantsByProvinceId(provinceId);
+        } else {
+            return List.of();
+        }
+        
+        return results.stream()
+                .map(row -> new RestaurantLocationDto(
+                    (UUID) row[0],    // restaurantId
+                    (String) row[1],   // name
+                    (String) row[2]    // address
+                ))
+                .collect(Collectors.toList());
+    }
+    
 }

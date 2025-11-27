@@ -3,14 +3,17 @@ package com.atlasculinary.controllers;
 import com.atlasculinary.dtos.AdminOverviewDto;
 import com.atlasculinary.dtos.ApiResponse;
 import com.atlasculinary.dtos.RestaurantCountByTagDto;
+import com.atlasculinary.dtos.RestaurantLocationDto;
 import com.atlasculinary.services.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -43,6 +46,21 @@ public class AdminController {
         ApiResponse response = ApiResponse.success(
             "Restaurant count by tag retrieved successfully",
             counts
+        );
+        return ResponseEntity.ok(response);
+    }
+    
+    @Operation(summary = "Search restaurants by location (ward, district, or province)")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
+    @GetMapping("/restaurants/search-by-location")
+    public ResponseEntity<ApiResponse> searchRestaurantsByLocation(
+            @Parameter(description = "Ward ID") @RequestParam(required = false) Integer wardId,
+            @Parameter(description = "District ID") @RequestParam(required = false) Integer districtId,
+            @Parameter(description = "Province ID") @RequestParam(required = false) Integer provinceId) {
+        List<RestaurantLocationDto> restaurants = adminService.searchRestaurantsByLocation(wardId, districtId, provinceId);
+        ApiResponse response = ApiResponse.success(
+            "Restaurants retrieved successfully",
+            restaurants
         );
         return ResponseEntity.ok(response);
     }
