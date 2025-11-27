@@ -29,7 +29,7 @@ public class AuthController {
   public ResponseEntity<ApiResponse> signUp(@Valid @RequestBody SignUpRequest signUpRequest) {
     authService.signUp(signUpRequest);
     ApiResponse response = ApiResponse.success("Đăng ký tài khoản thành công");
-    return ResponseEntity.ok(response);
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
   @Operation(summary = "Đăng nhập")

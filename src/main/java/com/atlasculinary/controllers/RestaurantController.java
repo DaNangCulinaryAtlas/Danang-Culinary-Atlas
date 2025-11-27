@@ -40,7 +40,7 @@ public class RestaurantController {
 
     @Operation(summary = "Create a new restaurant (by Vendor or Admin)")
     @PreAuthorize("hasAuthority('RESTAURANT_CREATE')")
-    @PutMapping("/restaurants")
+    @PostMapping("/restaurants")
     public ResponseEntity<RestaurantDto> createRestaurant(
             @RequestBody @Valid AddRestaurantRequest addRestaurantRequest,
             @AuthenticationPrincipal CustomAccountDetails principal) {
