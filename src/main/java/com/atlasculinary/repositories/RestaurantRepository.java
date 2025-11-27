@@ -105,4 +105,14 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
            "GROUP BY rt.tagId, rt.name " +
            "ORDER BY COUNT(r) DESC")
     List<com.atlasculinary.dtos.RestaurantCountByTagDto> countRestaurantsByTag(@Param("approvalStatus") ApprovalStatus approvalStatus);
+    
+    // Search by location - optimized queries
+    @Query("SELECT r.restaurantId, r.name, r.address FROM Restaurant r WHERE r.ward.wardId = :wardId")
+    List<Object[]> findRestaurantsByWardId(@Param("wardId") Integer wardId);
+    
+    @Query("SELECT r.restaurantId, r.name, r.address FROM Restaurant r WHERE r.ward.district.districtId = :districtId")
+    List<Object[]> findRestaurantsByDistrictId(@Param("districtId") Integer districtId);
+    
+    @Query("SELECT r.restaurantId, r.name, r.address FROM Restaurant r WHERE r.ward.district.province.provinceId = :provinceId")
+    List<Object[]> findRestaurantsByProvinceId(@Param("provinceId") Integer provinceId);
 }
