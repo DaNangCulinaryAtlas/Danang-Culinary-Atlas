@@ -4,13 +4,18 @@ import com.atlasculinary.dtos.AdminDto;
 import com.atlasculinary.dtos.AdminOverviewDto;
 import com.atlasculinary.dtos.RestaurantCountByTagDto;
 import com.atlasculinary.dtos.RestaurantLocationDto;
+import com.atlasculinary.dtos.ReviewDto;
 import com.atlasculinary.enums.ApprovalStatus;
 import com.atlasculinary.mappers.AdminMapper;
+import com.atlasculinary.mappers.ReviewMapper;
 import com.atlasculinary.repositories.AccountRepository;
 import com.atlasculinary.repositories.AdminRepository;
 import com.atlasculinary.repositories.RestaurantRepository;
+import com.atlasculinary.repositories.ReviewRepository;
 import com.atlasculinary.services.AdminService;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,15 +28,21 @@ public class AdminServiceImpl implements AdminService {
     private final AdminMapper adminMapper;
     private final AccountRepository accountRepository;
     private final RestaurantRepository restaurantRepository;
+    private final ReviewRepository reviewRepository;
+    private final ReviewMapper reviewMapper;
     
     public AdminServiceImpl(AdminRepository adminRepository,
                             AdminMapper adminMapper,
                             AccountRepository accountRepository,
-                            RestaurantRepository restaurantRepository) {
+                            RestaurantRepository restaurantRepository,
+                            ReviewRepository reviewRepository,
+                            ReviewMapper reviewMapper) {
         this.adminRepository = adminRepository;
         this.adminMapper = adminMapper;
         this.accountRepository = accountRepository;
         this.restaurantRepository = restaurantRepository;
+        this.reviewRepository = reviewRepository;
+        this.reviewMapper = reviewMapper;
     }
     
     @Override
@@ -85,6 +96,12 @@ public class AdminServiceImpl implements AdminService {
                     (String) row[2]    // address
                 ))
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional
+    public Page<ReviewDto> getAllReviews(Pageable pageable) {
+        return reviewRepository.findAll(pageable).map(reviewMapper::toDto);
     }
     
 }

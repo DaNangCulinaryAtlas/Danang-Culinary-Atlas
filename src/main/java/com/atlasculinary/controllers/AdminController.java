@@ -4,11 +4,16 @@ import com.atlasculinary.dtos.AdminOverviewDto;
 import com.atlasculinary.dtos.ApiResponse;
 import com.atlasculinary.dtos.RestaurantCountByTagDto;
 import com.atlasculinary.dtos.RestaurantLocationDto;
+import com.atlasculinary.dtos.ReviewDto;
 import com.atlasculinary.services.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -63,5 +68,21 @@ public class AdminController {
             restaurants
         );
         return ResponseEntity.ok(response);
+    }
+    
+    @Operation(summary = "Get all reviews")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
+    @GetMapping("/reviews")
+    public ResponseEntity<Page<ReviewDto>> getAllReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<ReviewDto> reviews = adminService.getAllReviews(pageable);
+        return ResponseEntity.ok(reviews);
     }
 }
