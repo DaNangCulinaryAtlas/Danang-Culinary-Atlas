@@ -107,7 +107,7 @@ public class ReviewController {
             @AuthenticationPrincipal CustomAccountDetails principal) {
 
         ReviewDto updatedReview = vendorReviewService.replyToReview(reviewId, request, principal.getAccountId());
-        return new ResponseEntity<>(updatedReview, HttpStatus.CREATED);
+        return ResponseEntity.ok(updatedReview);
     }
 
 

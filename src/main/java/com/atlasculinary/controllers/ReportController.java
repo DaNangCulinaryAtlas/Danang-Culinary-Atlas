@@ -6,6 +6,7 @@ import com.atlasculinary.dtos.ReportStatisticsResponse;
 import com.atlasculinary.dtos.UpdateReportStatusRequest;
 import com.atlasculinary.services.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -25,7 +26,7 @@ public class ReportController {
     public ResponseEntity<ReportResponse> createReport(@RequestBody ReportRequest request, Authentication authentication) {
         String username = authentication.getName();
         ReportResponse response = reportService.createReport(request, username);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/my")
