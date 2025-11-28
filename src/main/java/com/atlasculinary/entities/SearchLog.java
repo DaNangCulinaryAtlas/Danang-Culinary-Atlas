@@ -29,11 +29,6 @@ public class SearchLog {
     @Column(name = "restaurant_id")
     private UUID restaurantId;
 
-    @Column(name = "dish_id")
-    private UUID dishId;
-
-    @Column(name = "event_type", length = 20, nullable = false)
-    private EventType eventType;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
