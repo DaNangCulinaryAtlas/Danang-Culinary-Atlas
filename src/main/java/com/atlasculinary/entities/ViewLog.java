@@ -23,6 +23,7 @@ public class ViewLog {
     @Column(name = "dish_id", nullable = false)
     private UUID dishId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "event_type", length = 20, nullable = false)
     private EventType eventType;
 

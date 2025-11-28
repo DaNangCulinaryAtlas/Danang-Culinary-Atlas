@@ -49,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
 
     Account account = new Account();
     account.setEmail(signUpRequest.getEmail());
+//    System.out.println(passwordEncoder.encode(signUpRequest.getPassword()));
     account.setPassword(passwordEncoder.encode(signUpRequest.getPassword()));
     account.setStatus(AccountStatus.ACTIVE);
 
