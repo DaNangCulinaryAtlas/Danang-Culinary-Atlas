@@ -40,6 +40,22 @@ public class AuthController {
     return ResponseEntity.ok(response);
   }
 
+  @Operation(summary = "Làm mới access token bằng refresh token")
+  @PostMapping("/refresh-token")
+  public ResponseEntity<ApiResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+    RefreshTokenResponse refreshTokenResponse = authService.refreshToken(refreshTokenRequest);
+    ApiResponse response = ApiResponse.success("Làm mới token thành công", refreshTokenResponse);
+    return ResponseEntity.ok(response);
+  }
+
+  @Operation(summary = "Đăng xuất - Thu hồi refresh token")
+  @PostMapping("/logout")
+  public ResponseEntity<ApiResponse> logout(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+    authService.logout(refreshTokenRequest.getRefreshToken());
+    ApiResponse response = ApiResponse.success("Đăng xuất thành công");
+    return ResponseEntity.ok(response);
+  }
+
   @Operation(summary = "Thay đổi mật khẩu (yêu cầu đăng nhập)")
   @PutMapping("/change-password")
   public ResponseEntity<ApiResponse> changePassword(

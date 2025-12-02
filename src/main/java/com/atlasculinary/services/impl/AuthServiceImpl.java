@@ -11,6 +11,7 @@ import com.atlasculinary.services.NotificationService;
 import com.atlasculinary.utils.JwtUtil;
 import com.atlasculinary.utils.NameUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -35,10 +36,14 @@ public class AuthServiceImpl implements AuthService {
   private final AdminRepository adminRepository;
   private final VendorRepository vendorRepository;
   private final PasswordResetTokenRepository passwordResetTokenRepository;
+  private final RefreshTokenRepository refreshTokenRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtUtil jwtUtil;
   private final AuthenticationManager authenticationManager;
   private final NotificationService notificationService;
+  
+  @Value("${jwt.refresh.expiration}")
+  private Long refreshTokenExpirationMs;
 
   @Override
   @Transactional
@@ -130,12 +135,18 @@ public class AuthServiceImpl implements AuthService {
         .collect(Collectors.toList());
       LOGGER.severe("Roles" + roles);
       String token = jwtUtil.generateToken(account.getEmail(), roles);
+      
+      // Generate refresh token
+      String refreshTokenStr = jwtUtil.generateRefreshToken(account.getEmail());
+      saveRefreshToken(account, refreshTokenStr);
+      
       String fullName = account.getFullName();
       String email = account.getEmail();
       UUID accountId = account.getAccountId();
       fullName = NameUtil.resolveName(fullName, email);
       return LoginResponse.builder()
           .token(token)
+          .refreshToken(refreshTokenStr)
           .accountId(accountId)
           .email(email)
           .fullName(fullName)
@@ -261,5 +272,77 @@ public class AuthServiceImpl implements AuthService {
     }
     
     return resetToken.getExpiresAt().isAfter(LocalDateTime.now());
+  }
+  
+  @Override
+  @Transactional
+  public RefreshTokenResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
+    String requestRefreshToken = refreshTokenRequest.getRefreshToken();
+    
+    RefreshToken refreshToken = refreshTokenRepository.findByToken(requestRefreshToken)
+        .orElseThrow(() -> new RuntimeException("Refresh token không tồn tại"));
+    
+    if (refreshToken.getRevoked()) {
+      throw new RuntimeException("Refresh token đã bị thu hồi");
+    }
+    
+    if (refreshToken.isExpired()) {
+      refreshTokenRepository.delete(refreshToken);
+      throw new RuntimeException("Refresh token đã hết hạn. Vui lòng đăng nhập lại");
+    }
+    
+    Account account = refreshToken.getAccount();
+    
+    if (account.getStatus() == AccountStatus.BLOCKED) {
+      throw new RuntimeException("Tài khoản đã bị khóa");
+    }
+    if (account.getStatus() == AccountStatus.DELETED) {
+      throw new RuntimeException("Tài khoản đã bị xóa");
+    }
+    
+    // Get user roles
+    var roleMapList = accountRoleMapRepository.findByAccountIdWithRole(account.getAccountId());
+    var roles = roleMapList.stream()
+        .map(roleMap -> roleMap.getRole().getRoleName())
+        .collect(Collectors.toList());
+    
+    // Generate new access token
+    String newAccessToken = jwtUtil.generateToken(account.getEmail(), roles);
+    
+    // Generate new refresh token and revoke old one
+    String newRefreshToken = jwtUtil.generateRefreshToken(account.getEmail());
+    refreshToken.setRevoked(true);
+    refreshTokenRepository.save(refreshToken);
+    saveRefreshToken(account, newRefreshToken);
+    
+    return RefreshTokenResponse.builder()
+        .accessToken(newAccessToken)
+        .refreshToken(newRefreshToken)
+        .build();
+  }
+  
+  @Override
+  @Transactional
+  public void logout(String refreshToken) {
+    RefreshToken token = refreshTokenRepository.findByToken(refreshToken)
+        .orElseThrow(() -> new RuntimeException("Refresh token không tồn tại"));
+    
+    if (token.getRevoked()) {
+      throw new RuntimeException("Refresh token đã được thu hồi trước đó");
+    }
+    
+    token.setRevoked(true);
+    refreshTokenRepository.save(token);
+    LOGGER.info("Đã thu hồi refresh token cho account: " + token.getAccount().getEmail());
+  }
+  
+  private void saveRefreshToken(Account account, String token) {
+    RefreshToken refreshToken = RefreshToken.builder()
+        .token(token)
+        .account(account)
+        .expiryDate(LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000))
+        .revoked(false)
+        .build();
+    refreshTokenRepository.save(refreshToken);
   }
 }
