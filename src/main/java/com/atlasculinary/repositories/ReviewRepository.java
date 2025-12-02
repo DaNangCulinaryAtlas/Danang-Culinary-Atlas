@@ -18,6 +18,4 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
     Page<Review> findByRatingBetween(Integer minRating, Integer maxRating, Pageable pageable);
     
     Page<Review> findByRestaurant_RestaurantIdAndRatingBetween(UUID restId, Integer minRating, Integer maxRating, Pageable pageable);
-    
-    Page<Review> findByDish_DishIdAndRatingBetween(UUID dishId, Integer minRating, Integer maxRating, Pageable pageable);
 }

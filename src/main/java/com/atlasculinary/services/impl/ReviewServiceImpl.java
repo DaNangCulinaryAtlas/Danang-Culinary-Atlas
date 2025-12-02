@@ -177,21 +177,6 @@ public class ReviewServiceImpl implements ReviewService {
         return reviewPage.map(reviewMapper::toDto);
     }
 
-    @Override
-    public Page<ReviewDto> getReviewsByDishAndRatingRange(UUID dishId, Integer minRating, Integer maxRating, int page, int size, String sortBy, String sortDirection) {
-        validateRatingRange(minRating, maxRating);
-        
-        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc")
-                ? Sort.Direction.DESC
-                : Sort.Direction.ASC;
-
-        Sort sort = Sort.by(direction, sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Review> reviewPage = reviewRepository.findByDish_DishIdAndRatingBetween(dishId, minRating, maxRating, pageable);
-        return reviewPage.map(reviewMapper::toDto);
-    }
-
     private void validateRatingRange(Integer minRating, Integer maxRating) {
         if (minRating < 1 || minRating > 5) {
             throw new IllegalArgumentException("minRating must be between 1 and 5");

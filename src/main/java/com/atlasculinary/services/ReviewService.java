@@ -22,6 +22,4 @@ public interface ReviewService {
     Page<ReviewDto> getReviewsByRatingRange(Integer minRating, Integer maxRating, int page, int size, String sortBy, String sortDirection);
     
     Page<ReviewDto> getReviewsByRestaurantAndRatingRange(UUID restId, Integer minRating, Integer maxRating, int page, int size, String sortBy, String sortDirection);
-    
-    Page<ReviewDto> getReviewsByDishAndRatingRange(UUID dishId, Integer minRating, Integer maxRating, int page, int size, String sortBy, String sortDirection);
 }

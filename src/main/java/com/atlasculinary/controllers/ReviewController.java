@@ -156,20 +156,4 @@ public class ReviewController {
                 restaurantId, minRating, maxRating, page, size, sortBy, sortDirection);
         return ResponseEntity.ok(reviews);
     }
-
-    @Operation(summary = "Get reviews by dish ID and rating range")
-    @GetMapping("/dishes/{dishId}/reviews/rating-range")
-    public ResponseEntity<Page<ReviewDto>> getReviewsByDishAndRatingRange(
-            @PathVariable UUID dishId,
-            @RequestParam Integer minRating,
-            @RequestParam Integer maxRating,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection) {
-
-        Page<ReviewDto> reviews = reviewService.getReviewsByDishAndRatingRange(
-                dishId, minRating, maxRating, page, size, sortBy, sortDirection);
-        return ResponseEntity.ok(reviews);
-    }
 }
