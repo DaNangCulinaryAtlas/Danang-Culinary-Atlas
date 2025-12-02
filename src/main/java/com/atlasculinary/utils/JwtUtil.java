@@ -24,6 +24,9 @@ public class JwtUtil {
   @Value("${jwt.expiration}")
   private Long expiration;
 
+  @Value("${jwt.refresh.expiration}")
+  private Long refreshExpiration;
+
   public String extractEmail(String token) {
     return extractClaim(token, Claims::getSubject);
   }
@@ -59,16 +62,21 @@ public class JwtUtil {
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", roles);
 
-        return createToken(claims, email);
+        return createToken(claims, email, expiration);
     }
 
-  private String createToken(Map<String, Object> claims, String subject) {
+  public String generateRefreshToken(String email) {
+    Map<String, Object> claims = new HashMap<>();
+    return createToken(claims, email, refreshExpiration);
+  }
+
+  private String createToken(Map<String, Object> claims, String subject, Long expirationTime) {
     return Jwts
         .builder()
         .claims(claims)
         .subject(subject)
         .issuedAt(new Date(System.currentTimeMillis()))
-        .expiration(new Date(System.currentTimeMillis() + expiration))
+        .expiration(new Date(System.currentTimeMillis() + expirationTime))
         .signWith(getSignKey())
         .compact();
   }

@@ -19,6 +19,9 @@ public class LoginResponse {
   
   @Builder.Default
   private String tokenType = "Bearer";
+  
+  private String refreshToken;
+  
   private UUID accountId;
   private String email;
   private String fullName;

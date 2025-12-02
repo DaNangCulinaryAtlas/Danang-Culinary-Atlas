@@ -52,6 +52,8 @@ public class SecurityConfig {
             "/webjars/**",
             "/api/v1/auth/signup",
             "/api/v1/auth/login",
+            "/api/v1/auth/refresh-token",
+            "/api/v1/auth/logout",
             "/api/v1/locations/**"
     };
 
