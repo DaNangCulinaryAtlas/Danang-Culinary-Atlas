@@ -14,4 +14,8 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
     Page<Review> findByDish_DishId(UUID dishId, Pageable pageable);
     
     Long countByReviewerAccount(Account reviewerAccount);
+    
+    Page<Review> findByRatingBetween(Integer minRating, Integer maxRating, Pageable pageable);
+    
+    Page<Review> findByRestaurant_RestaurantIdAndRatingBetween(UUID restId, Integer minRating, Integer maxRating, Pageable pageable);
 }
