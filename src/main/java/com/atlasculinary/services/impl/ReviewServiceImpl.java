@@ -17,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -146,5 +145,62 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElseThrow(()-> new ResourceNotFoundException("Review not found with ID: " + reviewId));
 
         return reviewMapper.toDto(review);
+    }
+
+    @Override
+    public Page<ReviewDto> getReviewsByRatingRange(Integer minRating, Integer maxRating, int page, int size, String sortBy, String sortDirection) {
+        validateRatingRange(minRating, maxRating);
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        Sort sort = Sort.by(direction, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Review> reviewPage = reviewRepository.findByRatingBetween(minRating, maxRating, pageable);
+        return reviewPage.map(reviewMapper::toDto);
+    }
+
+    @Override
+    public Page<ReviewDto> getReviewsByRestaurantAndRatingRange(UUID restId, Integer minRating, Integer maxRating, int page, int size, String sortBy, String sortDirection) {
+        validateRatingRange(minRating, maxRating);
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        Sort sort = Sort.by(direction, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Review> reviewPage = reviewRepository.findByRestaurant_RestaurantIdAndRatingBetween(restId, minRating, maxRating, pageable);
+        return reviewPage.map(reviewMapper::toDto);
+    }
+
+    @Override
+    public Page<ReviewDto> getReviewsByDishAndRatingRange(UUID dishId, Integer minRating, Integer maxRating, int page, int size, String sortBy, String sortDirection) {
+        validateRatingRange(minRating, maxRating);
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        Sort sort = Sort.by(direction, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Review> reviewPage = reviewRepository.findByDish_DishIdAndRatingBetween(dishId, minRating, maxRating, pageable);
+        return reviewPage.map(reviewMapper::toDto);
+    }
+
+    private void validateRatingRange(Integer minRating, Integer maxRating) {
+        if (minRating < 1 || minRating > 5) {
+            throw new IllegalArgumentException("minRating must be between 1 and 5");
+        }
+        if (maxRating < 1 || maxRating > 5) {
+            throw new IllegalArgumentException("maxRating must be between 1 and 5");
+        }
+        if (minRating > maxRating) {
+            throw new IllegalArgumentException("minRating cannot be greater than maxRating");
+        }
     }
 }
