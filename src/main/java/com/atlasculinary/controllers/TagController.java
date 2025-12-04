@@ -4,6 +4,8 @@ import com.atlasculinary.dtos.DishTagDto;
 import com.atlasculinary.dtos.RestaurantTagDto;
 import com.atlasculinary.services.DishTagService;
 import com.atlasculinary.services.RestaurantTagService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,10 +20,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/tags")
 @AllArgsConstructor
+@Tag(name = "Tag Management", description = "API for managing restaurant and dish tags")
 public class TagController {
 
     private final RestaurantTagService restaurantTagService;
     private final DishTagService dishTagService;
+    @Operation(summary = "Get all restaurant tags", description = "Retrieve all available tags that can be applied to restaurants")
     @GetMapping("/restaurant")
     @PreAuthorize("hasAuthority('TAG_VIEW_RESTAURANT')")
     public ResponseEntity<List<RestaurantTagDto>> getAllRestaurantTags() {
@@ -29,6 +33,7 @@ public class TagController {
         return ResponseEntity.ok(tags);
     }
 
+    @Operation(summary = "Get all dish tags", description = "Retrieve all available tags that can be applied to dishes")
     @GetMapping("/dish")
     @PreAuthorize("hasAuthority('TAG_VIEW_DISH')")
     public ResponseEntity<List<DishTagDto>> getAllDishTags() {
@@ -36,6 +41,7 @@ public class TagController {
         return ResponseEntity.ok(tags);
     }
 
+    @Operation(summary = "Get tags for a specific restaurant", description = "Retrieve all tags associated with the given restaurant ID")
     @GetMapping("/restaurant/{restaurantId}")
     @PreAuthorize("hasAuthority('TAG_VIEW_BY_RESTAURANT')")
     public ResponseEntity<List<RestaurantTagDto>> getRestaurantTagsByRestaurantId(@PathVariable UUID restaurantId) {

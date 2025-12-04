@@ -6,6 +6,8 @@ import com.atlasculinary.dtos.UserDto;
 import com.atlasculinary.dtos.VendorDto;
 import com.atlasculinary.dtos.profile.*;
 import com.atlasculinary.services.ProfileService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +18,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/profile")
 @RequiredArgsConstructor
+@Tag(name = "Profile Management", description = "API for viewing and updating user, admin, and vendor profiles")
 public class ProfileController {
 
     private final ProfileService profileService;
 
+    @Operation(summary = "Get current user profile", description = "Retrieve profile information for the currently authenticated user")
     @GetMapping("/user")
     @PreAuthorize("hasAuthority('PROFILE_USER_VIEW')")
     public ResponseEntity<ApiResponse> getUserProfile(Authentication authentication) {
@@ -28,6 +32,7 @@ public class ProfileController {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin người dùng thành công", profile));
     }
 
+    @Operation(summary = "Update current user profile", description = "Update profile information for the currently authenticated user")
     @PutMapping("/user")
     @PreAuthorize("hasAuthority('PROFILE_USER_UPDATE')")
     public ResponseEntity<ApiResponse> updateUserProfile(
@@ -38,6 +43,7 @@ public class ProfileController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin người dùng thành công", profile));
     }
 
+    @Operation(summary = "Get current admin profile", description = "Retrieve profile information for the currently authenticated admin")
     @GetMapping("/admin")
     @PreAuthorize("hasAuthority('PROFILE_ADMIN_VIEW')")
     public ResponseEntity<ApiResponse> getAdminProfile(Authentication authentication) {
@@ -46,6 +52,7 @@ public class ProfileController {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin quản trị viên thành công", profile));
     }
 
+    @Operation(summary = "Update current admin profile", description = "Update profile information for the currently authenticated admin")
     @PutMapping("/admin")
     @PreAuthorize("hasAuthority('PROFILE_ADMIN_UPDATE')")
     public ResponseEntity<ApiResponse> updateAdminProfile(
@@ -56,6 +63,7 @@ public class ProfileController {
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin quản trị viên thành công", profile));
     }
 
+    @Operation(summary = "Get current vendor profile", description = "Retrieve profile information for the currently authenticated vendor")
     @GetMapping("/vendor")
     @PreAuthorize("hasAuthority('PROFILE_VENDOR_VIEW')")
     public ResponseEntity<ApiResponse> getVendorProfile(Authentication authentication) {
@@ -64,6 +72,7 @@ public class ProfileController {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin nhà cung cấp thành công", profile));
     }
 
+    @Operation(summary = "Update current vendor profile", description = "Update profile information for the currently authenticated vendor")
     @PutMapping("/vendor")
     @PreAuthorize("hasAuthority('PROFILE_VENDOR_UPDATE')")
     public ResponseEntity<ApiResponse> updateVendorProfile(

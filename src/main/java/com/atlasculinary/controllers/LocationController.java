@@ -4,7 +4,8 @@ import com.atlasculinary.dtos.ProvinceDto;
 import com.atlasculinary.dtos.DistrictDto;
 import com.atlasculinary.dtos.WardDto;
 import com.atlasculinary.services.LocationService;
-
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,24 +15,19 @@ import java.util.List;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api/v1/locations")
+@Tag(name = "Location Management", description = "API for Vietnamese administrative divisions: provinces, districts, and wards")
 public class LocationController {
 
     private final LocationService locationService;
 
-    /**
-     * GET /api/public/locations/provinces
-     * Lấy danh sách tất cả các tỉnh/thành phố
-     */
+    @Operation(summary = "Get all provinces", description = "Retrieve the list of all provinces/cities in Viet Nam")
     @GetMapping("/provinces")
     public ResponseEntity<List<ProvinceDto>> getAllProvinces() {
         List<ProvinceDto> provinces = locationService.getAllProvinces();
         return ResponseEntity.ok(provinces);
     }
 
-    /**
-     * GET /api/public/locations/provinces/{provinceId}
-     * Lấy thông tin chi tiết của một tỉnh/thành phố theo ID
-     */
+    @Operation(summary = "Get a province by ID", description = "Retrieve detailed information for a specific province/city")
     @GetMapping("/provinces/{provinceId}")
     public ResponseEntity<ProvinceDto> getProvinceById(@PathVariable int provinceId) {
         ProvinceDto province = locationService.getProvinceById(provinceId);
@@ -40,20 +36,14 @@ public class LocationController {
 
     // --- 2. District (Quận/Huyện) ---
 
-    /**
-     * GET /api/public/locations/provinces/{provinceId}/districts
-     * Lấy danh sách các quận/huyện thuộc một tỉnh/thành phố
-     */
+    @Operation(summary = "Get districts by province", description = "Retrieve all districts that belong to a specific province")
     @GetMapping("/provinces/{provinceId}/districts")
     public ResponseEntity<List<DistrictDto>> getDistrictsByProvince(@PathVariable int provinceId) {
         List<DistrictDto> districts = locationService.getDistrictsByProvince(provinceId);
         return ResponseEntity.ok(districts);
     }
 
-    /**
-     * GET /api/public/locations/districts/{districtId}
-     * Lấy thông tin chi tiết của một quận/huyện theo ID
-     */
+    @Operation(summary = "Get a district by ID", description = "Retrieve detailed information for a specific district")
     @GetMapping("/districts/{districtId}")
     public ResponseEntity<DistrictDto> getDistrictById(@PathVariable int districtId) {
         DistrictDto district = locationService.getDistrictById(districtId);
@@ -62,20 +52,14 @@ public class LocationController {
 
     // --- 3. Ward (Phường/Xã) ---
 
-    /**
-     * GET /api/public/locations/districts/{districtId}/wards
-     * Lấy danh sách các phường/xã thuộc một quận/huyện
-     */
+    @Operation(summary = "Get wards by district", description = "Retrieve all wards that belong to a specific district")
     @GetMapping("/districts/{districtId}/wards")
     public ResponseEntity<List<WardDto>> getWardsByDistrict(@PathVariable int districtId) {
         List<WardDto> wards = locationService.getWardsByDistrict(districtId);
         return ResponseEntity.ok(wards);
     }
 
-    /**
-     * GET /api/public/locations/wards/{wardId}
-     * Lấy thông tin chi tiết của một phường/xã theo ID
-     */
+    @Operation(summary = "Get a ward by ID", description = "Retrieve detailed information for a specific ward")
     @GetMapping("/wards/{wardId}")
     public ResponseEntity<WardDto> getWardById(@PathVariable int wardId) {
         WardDto ward = locationService.getWardById(wardId);
