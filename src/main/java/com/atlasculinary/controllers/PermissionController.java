@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/permissions")
+@RequestMapping("/api/v1/admin/permissions")
 @RequiredArgsConstructor
 @Tag(name = "Permission Management", description = "APIs for managing role-based permissions")
 public class PermissionController {
@@ -36,7 +36,7 @@ public class PermissionController {
         return ResponseEntity.ok(ApiResponse.success("Roles retrieved successfully", roles));
     }
 
-    @GetMapping("/roles/permissions")
+    @GetMapping("/roles-with-permissions")
     @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
     @Operation(summary = "Get all roles with their permissions", description = "Retrieve all roles along with their assigned actions/permissions")
     public ResponseEntity<ApiResponse> getAllRolesWithPermissions() {

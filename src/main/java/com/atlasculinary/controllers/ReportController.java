@@ -16,12 +16,12 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/reports")
+@RequestMapping("/api/v1")
 public class ReportController {
     @Autowired
     private ReportService reportService;
 
-    @PostMapping({"", "/"})
+    @PostMapping("/reports")
     @PreAuthorize("hasAuthority('REPORT_CREATE')")
     public ResponseEntity<ReportResponse> createReport(@RequestBody ReportRequest request, Authentication authentication) {
         String username = authentication.getName();
@@ -29,7 +29,7 @@ public class ReportController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/my")
+    @GetMapping("/reports/my")
     @PreAuthorize("hasAuthority('REPORT_VIEW_OWN')")
     public ResponseEntity<List<ReportResponse>> getMyReports(Authentication authentication) {
         String username = authentication.getName();
@@ -37,14 +37,14 @@ public class ReportController {
         return ResponseEntity.ok(reports);
     }
 
-    @GetMapping("/admin")
+    @GetMapping("/admin/reports")
     @PreAuthorize("hasAuthority('REPORT_VIEW_ALL')")
     public ResponseEntity<List<ReportResponse>> getAllReports() {
         List<ReportResponse> reports = reportService.getAllReports();
         return ResponseEntity.ok(reports);
     }
 
-    @PutMapping("/admin/{reportId}/status")
+    @PutMapping("/admin/reports/{reportId}/status")
     @PreAuthorize("hasAuthority('REPORT_UPDATE_STATUS')")
     public ResponseEntity<ReportResponse> updateReportStatus(@PathVariable UUID reportId, @RequestBody UpdateReportStatusRequest request, Authentication authentication) {
         String adminUsername = authentication.getName();
@@ -52,7 +52,7 @@ public class ReportController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/admin/statistics")
+    @GetMapping("/admin/reports/statistics")
     @PreAuthorize("hasAuthority('REPORT_VIEW_STATISTICS')")
     public ResponseEntity<ReportStatisticsResponse> getReportStatistics() {
         ReportStatisticsResponse stats = reportService.getReportStatistics();

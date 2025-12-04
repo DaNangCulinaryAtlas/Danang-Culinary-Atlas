@@ -100,7 +100,7 @@ public class DishController {
     }
 
     @Operation(summary = "Get dish details for management (All Statuses) - Cho Admin/Vendor")
-    @GetMapping("/management/dishes/{dishId}")
+    @GetMapping("/dishes/{dishId}/management")
     @PreAuthorize("hasAuthority('DISH_VIEW_MANAGEMENT')")
     public ResponseEntity<DishDto> getDishDetailsForManagement(
             @PathVariable UUID dishId,
@@ -129,7 +129,7 @@ public class DishController {
     // =================================================================
 
     @Operation(summary = "Admin approve or reject a dish")
-    @PatchMapping("/dishes/admin/{dishId}/approval")
+    @PatchMapping("/admin/dishes/{dishId}/approval")
     @PreAuthorize("hasAuthority('DISH_APPROVE') or hasAuthority('DISH_REJECT')")
     public ResponseEntity<DishDto> approveOrRejectDish(
             @PathVariable UUID dishId,
@@ -142,7 +142,7 @@ public class DishController {
     }
 
     @Operation(summary = "Admin get all dishes is pending")
-    @GetMapping("/dishes/admin/pending")
+    @GetMapping("/admin/dishes/pending")
     @PreAuthorize("hasAuthority('DISH_VIEW_PENDING')")
     public ResponseEntity<Page<DishDto>> getPendingDishes(
             @RequestParam(defaultValue = "0") int page,
@@ -155,7 +155,7 @@ public class DishController {
     }
 
     @Operation(summary = "Admin get all dishes is rejected")
-    @GetMapping("/dishes/admin/rejected")
+    @GetMapping("/admin/dishes/rejected")
     @PreAuthorize("hasAuthority('DISH_VIEW_REJECTED')")
     public ResponseEntity<Page<DishDto>> getRejectedDishes(
             @RequestParam(defaultValue = "0") int page,

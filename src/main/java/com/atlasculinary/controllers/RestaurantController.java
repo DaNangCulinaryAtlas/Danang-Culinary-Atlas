@@ -187,7 +187,7 @@ public class RestaurantController {
     // =================================================================
 
     @Operation(summary = "Update the approval status of a restaurant (Admin only)")
-    @PatchMapping("/restaurants/admin/{restaurantId}/approval") // URI: /api/v1/admin/restaurants/{id}/approval
+    @PatchMapping("/admin/restaurants/{restaurantId}/approval") // URI: /api/v1/admin/restaurants/{id}/approval
     @PreAuthorize("hasAuthority('RESTAURANT_APPROVE') or hasAuthority('RESTAURANT_REJECT')")
     public ResponseEntity<RestaurantDto> updateApprovalStatus(
             @PathVariable UUID restaurantId,
@@ -200,7 +200,7 @@ public class RestaurantController {
     }
 
     @Operation(summary = "ADMIN: Get all restaurants with any status (PENDING, APPROVED, REJECTED)")
-    @GetMapping("/restaurants/admin") // URI: /api/v1/restaurants/admin
+    @GetMapping("/admin/restaurants") // URI: /api/v1/admin/restaurants
     @PreAuthorize("hasAuthority('RESTAURANT_VIEW_ALL')")
     public ResponseEntity<Page<RestaurantDto>> getAllRestaurantsForAdmin(
             @RequestParam(defaultValue = "0") int page,
