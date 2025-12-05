@@ -1,5 +1,6 @@
 package com.atlasculinary.services.impl;
 
+import com.atlasculinary.controllers.WebSocketNotificationController;
 import com.atlasculinary.dtos.*;
 import com.atlasculinary.entities.Account;
 import com.atlasculinary.entities.Notification;
@@ -11,7 +12,6 @@ import com.atlasculinary.repositories.ReviewRepository;
 import com.atlasculinary.services.*;
 import com.atlasculinary.utils.NameUtil;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import com.atlasculinary.enums.ApprovalStatus;
 import com.atlasculinary.enums.NotificationType;
@@ -24,7 +24,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -42,6 +41,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final JavaMailSender mailSender;
     private final NotificationMapper notificationMapper;
     private final ReviewRepository reviewRepository;
+    private final WebSocketNotificationController webSocketController;
 
     public NotificationServiceImpl(
             NotificationRepository notificationRepository,
@@ -50,7 +50,8 @@ public class NotificationServiceImpl implements NotificationService {
             AdminService adminService,
             VendorService vendorService,
             JavaMailSender mailSender,
-            ReviewRepository reviewRepository
+            ReviewRepository reviewRepository,
+            WebSocketNotificationController webSocketController
     ) {
         this.notificationRepository = notificationRepository;
         this.notificationMapper = notificationMapper;
@@ -59,6 +60,7 @@ public class NotificationServiceImpl implements NotificationService {
         this.vendorService = vendorService;
         this.mailSender = mailSender;
         this.reviewRepository = reviewRepository;
+        this.webSocketController = webSocketController;
     }
     @Value("${spring.mail.username}")
     private String fromEmail;
@@ -71,6 +73,18 @@ public class NotificationServiceImpl implements NotificationService {
     
     @Value("${app.deeplink.scheme}")
     private String deeplinkScheme;
+
+    @Override
+    public void sendRealtimeNotification(UUID accountId, NotificationDto notification) {
+        try {
+            // Get user email to use as WebSocket principal
+            Account account = accountService.getAccountById(accountId);
+            webSocketController.sendNotificationToUser(account.getEmail(), notification);
+            LOGGER.info("Sent real-time notification to user: " + accountId + " (" + account.getEmail() + ")");
+        } catch (Exception e) {
+            LOGGER.warning("Failed to send real-time notification: " + e.getMessage());
+        }
+    }
 
     @Override
     public void sendWelcomeNotification(UUID accountId) {
@@ -119,7 +133,6 @@ public class NotificationServiceImpl implements NotificationService {
             List<AdminDto> adminDtoList = adminService.getAllAdmins();
             for (var adminDto: adminDtoList) {
                 String adminEmail = adminDto.getEmail();
-                UUID adminId = adminDto.getAccountId();
                 UUID adminAccountId = adminDto.getAccountId();
 
                 sendEmail(adminEmail, subject, content);
@@ -210,7 +223,11 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setAccount(recipientAccount);
         notification.setIsRead(false);
 
-        notificationRepository.save(notification);
+        Notification savedNotification = notificationRepository.save(notification);
+        
+        // Send real-time notification via WebSocket
+        NotificationDto notificationDto = notificationMapper.toDto(savedNotification);
+        sendRealtimeNotification(request.getAccountId(), notificationDto);
     }
 
     @Override
@@ -257,7 +274,11 @@ public class NotificationServiceImpl implements NotificationService {
 
         if (!notification.getIsRead()) {
             notification.setIsRead(true);
-            notificationRepository.save(notification);
+            Notification updatedNotification = notificationRepository.save(notification);
+            
+            // Send real-time update via WebSocket
+            NotificationDto notificationDto = notificationMapper.toDto(updatedNotification);
+            sendRealtimeNotification(accessAccountId, notificationDto);
         }
     }
 
