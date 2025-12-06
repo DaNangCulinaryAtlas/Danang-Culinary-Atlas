@@ -17,8 +17,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Enable simple broker for sending messages to clients
-        config.enableSimpleBroker("/topic", "/queue");
+        // Enable simple broker for sending messages to clients with heartbeat
+        config.enableSimpleBroker("/topic", "/queue")
+                .setHeartbeatValue(new long[]{10000, 10000});
         // Prefix for messages from client to server
         config.setApplicationDestinationPrefixes("/app");
         // Prefix for user-specific destinations
@@ -27,13 +28,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Register STOMP endpoint with SockJS fallback (for browsers)
+        // Endpoint #1: For Web browsers (with SockJS fallback)
+        // URL: http://localhost:8081/ws
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .withSockJS()
+                .setHeartbeatTime(25000);
         
-        // Register native WebSocket endpoint (for Postman and native clients)
-        registry.addEndpoint("/ws-native")
+        // Endpoint #2: For React Native/Mobile apps (native WebSocket only)
+        // URL: ws://YOUR_IP:8081/ws-mobile
+        registry.addEndpoint("/ws-mobile")
                 .setAllowedOriginPatterns("*");
     }
 
