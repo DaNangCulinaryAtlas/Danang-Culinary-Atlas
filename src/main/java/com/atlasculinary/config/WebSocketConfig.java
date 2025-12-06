@@ -18,8 +18,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Enable simple broker for sending messages to clients with heartbeat
-        config.enableSimpleBroker("/topic", "/queue")
-                .setHeartbeatValue(new long[]{10000, 10000});
+        config.enableSimpleBroker("/topic", "/queue");
         // Prefix for messages from client to server
         config.setApplicationDestinationPrefixes("/app");
         // Prefix for user-specific destinations
