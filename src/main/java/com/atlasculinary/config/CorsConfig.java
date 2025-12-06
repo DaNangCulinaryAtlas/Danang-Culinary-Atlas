@@ -39,7 +39,8 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // 👈 Frontend domain - loaded from environment variable FRONTEND_URL
-        config.setAllowedOrigins(List.of(urlAllowedCors));
+        // config.setAllowedOrigins(List.of(urlAllowedCors));
+        config.setAllowedOriginPatterns(List.of("*"));
         // 👈 Allow all origins for development purposes
         // 👈 Allowed HTTP methods
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH","DELETE", "OPTIONS"));
