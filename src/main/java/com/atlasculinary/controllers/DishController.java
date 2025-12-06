@@ -92,6 +92,44 @@ public class DishController {
     // ============= ENDPOINTS CHO CUSTOMER (Người dùng cuối) ==========
     // =================================================================
 
+    @Operation(
+        summary = "Search dishes with filters",
+        description = "Get a paginated list of dishes with filtering by tags, price range, and search by name. Only returns APPROVED and AVAILABLE dishes."
+    )
+    @GetMapping("/dishes")
+    public ResponseEntity<Page<DishDto>> searchDishes(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortOrder) {
+
+        // Parse comma-separated tag names
+        java.util.List<String> tagNames = null;
+        if (tag != null && !tag.trim().isEmpty()) {
+            tagNames = java.util.Arrays.stream(tag.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        Page<DishDto> dishes = dishService.searchDishes(
+                tagNames,
+                minPrice,
+                maxPrice,
+                search,
+                page,
+                size,
+                sortBy,
+                sortOrder
+        );
+
+        return ResponseEntity.ok(dishes);
+    }
+
     @Operation(summary = "Get a dish's details (APPROVED và AVAILABLE)")
     @GetMapping("/dishes/{dishId}")
     public ResponseEntity<DishDto> getDishById(@PathVariable UUID dishId) {

@@ -4,6 +4,8 @@ import com.atlasculinary.dtos.*;
 import com.atlasculinary.securities.CustomAccountDetails;
 import org.springframework.data.domain.Page;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,4 +24,15 @@ public interface DishService {
     Page<DishDto> getRestaurantDishes(UUID restaurantId, int page, int size, String sortBy, String sortDirection, UUID accessAccountId);;
 
     Page<DishDto> getAvailableDishes(UUID restaurantId, int page, int size, String sortBy, String sortDirection);
+
+    Page<DishDto> searchDishes(
+            List<String> tagNames,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            String search,
+            int page,
+            int size,
+            String sortBy,
+            String sortOrder
+    );
 }

@@ -14,8 +14,12 @@ import com.atlasculinary.repositories.RestaurantRepository;
 import com.atlasculinary.securities.CustomAccountDetails;
 import com.atlasculinary.services.AccountService;
 import com.atlasculinary.services.DishService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -23,11 +27,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Service
@@ -37,6 +44,9 @@ public class DishServiceImpl implements DishService {
     private final DishMapper dishMapper;
     private final RestaurantRepository restaurantRepository;
     private final AccountService accountService;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
 
     @Override
@@ -187,5 +197,174 @@ public class DishServiceImpl implements DishService {
                 pageable);
 
         return dishPage.map(dishMapper::toDto);
+    }
+
+    @Override
+    public Page<DishDto> searchDishes(
+            List<String> tagNames,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            String search,
+            int page,
+            int size,
+            String sortBy,
+            String sortOrder) {
+
+        // Validate sortBy field để tránh SQL injection
+        String validSortBy = validateSortBy(sortBy);
+        
+        // Build query động để tránh lỗi PostgreSQL với NULL parameters
+        StringBuilder queryBuilder = new StringBuilder(
+            "SELECT DISTINCT d.dish_id FROM dish d " +
+            "LEFT JOIN dish_tag_map dtm ON dtm.dish_id = d.dish_id " +
+            "LEFT JOIN dish_tag dt ON dt.tag_id = dtm.tag_id " +
+            "WHERE d.status = :status " +
+            "AND d.approval_status = :approvalStatus"
+        );
+        
+        boolean hasTagFilter = tagNames != null && !tagNames.isEmpty();
+        boolean hasMinPrice = minPrice != null;
+        boolean hasMaxPrice = maxPrice != null;
+        boolean hasSearch = search != null && !search.trim().isEmpty();
+        
+        if (hasTagFilter) {
+            queryBuilder.append(" AND dt.name IN (:tagNames)");
+        }
+        if (hasMinPrice) {
+            queryBuilder.append(" AND d.price >= :minPrice");
+        }
+        if (hasMaxPrice) {
+            queryBuilder.append(" AND d.price <= :maxPrice");
+        }
+        if (hasSearch) {
+            queryBuilder.append(" AND LOWER(d.name) LIKE LOWER(CONCAT('%', :search, '%'))");
+        }
+        
+        Query query = entityManager.createNativeQuery(queryBuilder.toString());
+        query.setParameter("status", DishStatus.AVAILABLE.name());
+        query.setParameter("approvalStatus", ApprovalStatus.APPROVED.name());
+        if (hasTagFilter) {
+            query.setParameter("tagNames", tagNames);
+        }
+        if (hasMinPrice) {
+            query.setParameter("minPrice", minPrice);
+        }
+        if (hasMaxPrice) {
+            query.setParameter("maxPrice", maxPrice);
+        }
+        if (hasSearch) {
+            query.setParameter("search", search.trim());
+        }
+        
+        // Execute query để lấy dish_ids
+        @SuppressWarnings("unchecked")
+        List<Object> results = query.getResultList();
+        List<UUID> dishIds = results.stream()
+                .map(obj -> UUID.fromString(obj.toString()))
+                .collect(Collectors.toList());
+
+        // Nếu không có kết quả, trả về empty page
+        if (dishIds.isEmpty()) {
+            return Page.empty();
+        }
+
+        // Build count query tương tự
+        StringBuilder countQueryBuilder = new StringBuilder(
+            "SELECT COUNT(DISTINCT d.dish_id) FROM dish d " +
+            "LEFT JOIN dish_tag_map dtm ON dtm.dish_id = d.dish_id " +
+            "LEFT JOIN dish_tag dt ON dt.tag_id = dtm.tag_id " +
+            "WHERE d.status = :status " +
+            "AND d.approval_status = :approvalStatus"
+        );
+        
+        if (hasTagFilter) {
+            countQueryBuilder.append(" AND dt.name IN (:tagNames)");
+        }
+        if (hasMinPrice) {
+            countQueryBuilder.append(" AND d.price >= :minPrice");
+        }
+        if (hasMaxPrice) {
+            countQueryBuilder.append(" AND d.price <= :maxPrice");
+        }
+        if (hasSearch) {
+            countQueryBuilder.append(" AND LOWER(d.name) LIKE LOWER(CONCAT('%', :search, '%'))");
+        }
+        
+        Query countQuery = entityManager.createNativeQuery(countQueryBuilder.toString());
+        countQuery.setParameter("status", DishStatus.AVAILABLE.name());
+        countQuery.setParameter("approvalStatus", ApprovalStatus.APPROVED.name());
+        if (hasTagFilter) {
+            countQuery.setParameter("tagNames", tagNames);
+        }
+        if (hasMinPrice) {
+            countQuery.setParameter("minPrice", minPrice);
+        }
+        if (hasMaxPrice) {
+            countQuery.setParameter("maxPrice", maxPrice);
+        }
+        if (hasSearch) {
+            countQuery.setParameter("search", search.trim());
+        }
+        
+        long total = ((Number) countQuery.getSingleResult()).longValue();
+
+        // Query lại các Dish bằng JPA để tránh lỗi JSON mapping
+        Sort.Direction direction = sortOrder != null && sortOrder.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC :
+                Sort.Direction.ASC;
+        Sort sort = Sort.by(direction, validSortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Query dishes theo dishIds với sort và pagination
+        List<Dish> allDishes = dishRepository.findAllById(dishIds);
+        
+        // Sort thủ công theo sortBy và sortOrder
+        allDishes.sort((d1, d2) -> {
+            int comparison = 0;
+            switch (validSortBy) {
+                case "name":
+                    comparison = d1.getName().compareToIgnoreCase(d2.getName());
+                    break;
+                case "price":
+                    comparison = d1.getPrice().compareTo(d2.getPrice());
+                    break;
+                case "createdat":
+                    // Dish không có createdAt field, dùng dishId làm fallback
+                    comparison = d1.getDishId().compareTo(d2.getDishId());
+                    break;
+                case "dishid":
+                    comparison = d1.getDishId().compareTo(d2.getDishId());
+                    break;
+                default:
+                    comparison = d1.getName().compareToIgnoreCase(d2.getName());
+            }
+            return direction == Sort.Direction.DESC ? -comparison : comparison;
+        });
+
+        // Paginate thủ công
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), allDishes.size());
+        List<Dish> pagedDishes = start < allDishes.size() ? allDishes.subList(start, end) : List.of();
+
+        // Tạo Page từ kết quả
+        Page<Dish> dishPage = new org.springframework.data.domain.PageImpl<>(pagedDishes, pageable, total);
+
+        return dishPage.map(dishMapper::toDto);
+    }
+
+    private String validateSortBy(String sortBy) {
+        if (sortBy == null || sortBy.trim().isEmpty()) {
+            return "name"; // Default sort
+        }
+        
+        // Whitelist các field hợp lệ để tránh SQL injection
+        List<String> allowedFields = List.of("name", "price", "createdAt", "dishId");
+        String normalizedSortBy = sortBy.trim().toLowerCase();
+        
+        if (allowedFields.contains(normalizedSortBy)) {
+            return normalizedSortBy;
+        }
+        
+        return "name"; // Fallback to default
     }
 }
