@@ -119,7 +119,7 @@ public class RestaurantController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "average_rating") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection,
-            @RequestParam(required = false) List<String> cuisineTypes,
+            @RequestParam(required = false) List<Long> cuisineID,
             @RequestParam(defaultValue = "0.0") BigDecimal minRating,
             @RequestParam(defaultValue = "5.0") BigDecimal maxRating)
     {
@@ -129,7 +129,7 @@ public class RestaurantController {
                 size,
                 sortBy,
                 sortDirection,
-                cuisineTypes,
+                cuisineID,
                 minRating,
                 maxRating
         );
