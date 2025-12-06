@@ -55,7 +55,8 @@ public class SecurityConfig {
             "/api/v1/auth/refresh-token",
             "/api/v1/auth/logout",
             "/api/v1/locations/**",
-            "/ws/**"
+            "/ws/**",
+            "/ws-mobile/**"
     };
 
     // URI cho phép truy cập GET công khai (tài nguyên chính và tài nguyên con để đọc)
