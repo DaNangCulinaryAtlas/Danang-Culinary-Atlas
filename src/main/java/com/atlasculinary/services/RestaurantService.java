@@ -27,7 +27,7 @@ public interface RestaurantService {
             int size,
             String sortBy,
             String sortDirection,
-            List<String> cuisineTypes,    // Lọc theo Loại Quán Ăn
+            List<Long> cuisineID,         // Lọc theo ID Loại Quán Ăn
             BigDecimal minRating,         // Lọc theo Rating Tối thiểu
             BigDecimal maxRating          // Lọc theo Rating Tối đa
     );

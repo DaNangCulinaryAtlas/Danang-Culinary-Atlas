@@ -46,9 +46,8 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
 
             "AND EXISTS (" +
             "SELECT 1 FROM restaurant_tag_map rtm " +
-            "JOIN restaurant_tag rt ON rtm.tag_id = rt.tag_id " +
             "WHERE rtm.restaurant_id = r.restaurant_id " +
-            "AND rt.name IN (:cuisineTypes)" +
+            "AND rtm.tag_id IN (:cuisineID)" +
             ")",
 
             countQuery = "SELECT count(r.restaurant_id) " +
@@ -56,15 +55,14 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
                     "JOIN restaurant_stats rs ON r.restaurant_id = rs.restaurant_id " +
                     "WHERE r.approval_status = 'APPROVED' " +
                     "AND rs.average_rating BETWEEN :minRating AND :maxRating " +
-                    "AND (:cuisineTypes IS NULL OR :cuisineTypes = '') OR EXISTS (" +
+                    "AND EXISTS (" +
                     "SELECT 1 FROM restaurant_tag_map rtm " +
-                    "JOIN restaurant_tag rt ON rtm.tag_id = rt.tag_id " +
                     "WHERE rtm.restaurant_id = r.restaurant_id " +
-                    "AND rt.name IN (:cuisineTypes)" +
+                    "AND rtm.tag_id IN (:cuisineID)" +
                     ")",
             nativeQuery = true)
     Page<Restaurant> findApprovedRestaurantsByCriteria(
-            @Param("cuisineTypes") List<String> cuisineTypes,
+            @Param("cuisineID") List<Long> cuisineID,
             @Param("minRating") BigDecimal minRating,
             @Param("maxRating") BigDecimal maxRating,
             Pageable pageable);
@@ -78,13 +76,7 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
                     "FROM restaurant r " +
                     "JOIN restaurant_stats rs ON r.restaurant_id = rs.restaurant_id " +
                     "WHERE r.approval_status = 'APPROVED' " +
-                    "AND rs.average_rating BETWEEN :minRating AND :maxRating " +
-                    "AND (:cuisineTypes IS NULL OR :cuisineTypes = '') OR EXISTS (" +
-                    "SELECT 1 FROM restaurant_tag_map rtm " +
-                    "JOIN restaurant_tag rt ON rtm.tag_id = rt.tag_id " +
-                    "WHERE rtm.restaurant_id = r.restaurant_id " +
-                    "AND rt.name IN (:cuisineTypes)" +
-                    ")",
+                    "AND rs.average_rating BETWEEN :minRating AND :maxRating",
             nativeQuery = true)
     Page<Restaurant> findApprovedRestaurantsWithoutTag(
             @Param("minRating") BigDecimal minRating,

@@ -115,7 +115,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
-    public Page<RestaurantDto> searchApprovedRestaurants(int page, int size, String sortBy, String sortDirection, List<String> cuisineTypes, BigDecimal minRating, BigDecimal maxRating)
+    public Page<RestaurantDto> searchApprovedRestaurants(int page, int size, String sortBy, String sortDirection, List<Long> cuisineID, BigDecimal minRating, BigDecimal maxRating)
     {
         Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ?
                 Sort.Direction.DESC :
@@ -126,7 +126,7 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Restaurant> restaurantPage;
-        if (cuisineTypes == null ||cuisineTypes.isEmpty()) {
+        if (cuisineID == null || cuisineID.isEmpty()) {
             restaurantPage = restaurantRepository.findApprovedRestaurantsWithoutTag(
                     minRating,
                     maxRating,
@@ -134,7 +134,7 @@ public class RestaurantServiceImpl implements RestaurantService {
             );
         } else {
             restaurantPage = restaurantRepository.findApprovedRestaurantsByCriteria(
-                    cuisineTypes,
+                    cuisineID,
                     minRating,
                     maxRating,
                     pageable
