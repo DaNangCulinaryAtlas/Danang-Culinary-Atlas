@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/notifications")
+@RequestMapping("/api/v1")
 @AllArgsConstructor
 @Tag(name = "Notification Management", description = "API for managing notification data")
 public class NotificationController {
@@ -28,7 +28,7 @@ public class NotificationController {
 
 
     @Operation(summary = "Get list of notifications for the current user")
-    @GetMapping // URI: /api/v1/notifications
+    @GetMapping("/notifications") // URI: /api/v1/notifications
     @PreAuthorize("hasAuthority('NOTIFICATION_VIEW')")
     ResponseEntity<Page<NotificationDto>> getMyNotifications(
             @RequestParam(defaultValue = "0") int page,
@@ -44,7 +44,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Mask a specific notification as read for current user")
-    @PatchMapping("/{notificationId}/read")
+    @PatchMapping("/notifications/{notificationId}/read")
     @PreAuthorize("hasAuthority('NOTIFICATION_MARK_READ')")
     public ResponseEntity<Void> markAsRead(@PathVariable Long notificationId,
                                            @AuthenticationPrincipal CustomAccountDetails principal) {
@@ -54,7 +54,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Mask ALL notifications as read for current user")
-    @PatchMapping("/mark-all-read") // URI: /api/v1/notifications/mark-all-read
+    @PatchMapping("/notifications/mark-all-read") // URI: /api/v1/notifications/mark-all-read
     @PreAuthorize("hasAuthority('NOTIFICATION_MARK_READ')")
     public ResponseEntity<Void> markAllAsRead(@AuthenticationPrincipal CustomAccountDetails principal) {
         var accessAccountId = principal.getAccountId();
@@ -63,7 +63,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Count unread notification for current user")
-    @GetMapping("/unread/count") // URI: /api/v1/notifications/unread/count
+    @GetMapping("/notifications/unread/count") // URI: /api/v1/notifications/unread/count
     @PreAuthorize("hasAuthority('NOTIFICATION_COUNT_UNREAD')")
     public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal CustomAccountDetails principal) {
         var accessAccountId = principal.getAccountId();
@@ -72,7 +72,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Get top 10 unread notification for current user")
-    @GetMapping("/unread/top10") // URI: /api/v1/notifications/unread/top10
+    @GetMapping("/notifications/unread/top10") // URI: /api/v1/notifications/unread/top10
     @PreAuthorize("hasAuthority('NOTIFICATION_VIEW')")
     public ResponseEntity<List<NotificationDto>> getTop10Unread(@AuthenticationPrincipal CustomAccountDetails principal) {
         var accessAccountId = principal.getAccountId();
@@ -82,7 +82,7 @@ public class NotificationController {
 
 
     @Operation(summary = "ADMIN: Get list of notifications by recipient Id")
-    @GetMapping("/admin/{accountId}") // URI: /api/v1/notifications/admin/{accountId}
+    @GetMapping("/admin/notifications/{accountId}") // URI: /api/v1/admin/notifications/{accountId}
     @PreAuthorize("hasAuthority('NOTIFICATION_VIEW_ALL')")
     ResponseEntity<Page<NotificationDto>> getNotificationsByAdmin(
             @PathVariable UUID accountId,
@@ -96,7 +96,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "ADMIN: Count unread notification for any account")
-    @GetMapping("/admin/{accountId}/unread/count") // URI: /api/v1/notifications/admin/{id}/unread/count
+    @GetMapping("/admin/notifications/{accountId}/unread/count") // URI: /api/v1/admin/notifications/{id}/unread/count
     @PreAuthorize("hasAuthority('NOTIFICATION_VIEW_ALL')")
     public ResponseEntity<Long> getUnreadCountByAdmin(@PathVariable UUID accountId) {
         Long count = notificationService.getUnreadCount(accountId);
@@ -104,7 +104,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "ADMIN: Get top 10 unread notification for any account")
-    @GetMapping("/admin/{accountId}/unread/top10") // URI: /api/v1/notifications/admin/{id}/unread/top10
+    @GetMapping("/admin/notifications/{accountId}/unread/top10") // URI: /api/v1/admin/notifications/{id}/unread/top10
     @PreAuthorize("hasAuthority('NOTIFICATION_VIEW_ALL')")
     public ResponseEntity<List<NotificationDto>> getTop10UnreadByAdmin(@PathVariable UUID accountId) {
         List<NotificationDto> notifications = notificationService.getTop10Unread(accountId);
@@ -112,7 +112,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "ADMIN: Mark all notification as read for any account")
-    @PatchMapping("/admin/{accountId}/mark-all-read") // URI: /api/v1/notifications/admin/{id}/mark-all-read
+    @PatchMapping("/admin/notifications/{accountId}/mark-all-read") // URI: /api/v1/admin/notifications/{id}/mark-all-read
     @PreAuthorize("hasAuthority('NOTIFICATION_VIEW_ALL')")
     public ResponseEntity<Void> markAllAsReadByAdmin(@PathVariable UUID accountId) {
         notificationService.markAllAsRead(accountId);
@@ -120,7 +120,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "ADMIN: Delete a notification by ID (CRUD)")
-    @DeleteMapping("/admin/{notificationId}") // URI: /api/v1/notifications/admin/{id}
+    @DeleteMapping("/admin/notifications/{notificationId}") // URI: /api/v1/admin/notifications/{id}
     @PreAuthorize("hasAuthority('NOTIFICATION_DELETE')")
     public ResponseEntity<Void> deleteNotification(@PathVariable Long notificationId) {
         notificationService.deleteNotification(notificationId);
@@ -128,7 +128,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "ADMIN: Create and send a specific in-app notification to any user")
-    @PostMapping("/admin") // URI: /api/v1/notifications/admin
+    @PostMapping("/admin/notifications") // URI: /api/v1/admin/notifications
     @PreAuthorize("hasAuthority('NOTIFICATION_CREATE')")
     public ResponseEntity<Void> createInAppNotification(
             @Valid @RequestBody AddNotificationRequest addNotificationRequest) {

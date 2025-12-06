@@ -202,7 +202,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         }
 
         var restaurant = restaurantRepository.findById(restaurantId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with ID: " + restaurantId));
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with ID: " + restaurantId));
 
         UUID ownerId = restaurant.getOwnerAccount().getAccountId();
         boolean isAdmin = accountService.isAdmin(accessAccountId);
@@ -210,8 +210,10 @@ public class RestaurantServiceImpl implements RestaurantService {
         if (!ownerId.equals(accessAccountId) && !isAdmin) {
             throw new SecurityException("Bạn không có quyền chỉnh sửa thông tin nhà hàng này.");
         }
-        restaurantTagService.deleteRestaurantTagsByRestaurantId(restaurantId);
-        restaurantRepository.delete(restaurant);
+
+        // Soft delete: chỉ cập nhật trạng thái, không xoá cứng record
+        restaurant.setStatus(RestaurantStatus.CLOSED);
+        restaurantRepository.save(restaurant);
     }
 
     @Override
