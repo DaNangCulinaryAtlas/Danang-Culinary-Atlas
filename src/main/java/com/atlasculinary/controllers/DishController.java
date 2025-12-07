@@ -100,24 +100,29 @@ public class DishController {
     public ResponseEntity<Page<DishDto>> searchDishes(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) String tagId,
             @RequestParam(required = false) java.math.BigDecimal minPrice,
             @RequestParam(required = false) java.math.BigDecimal maxPrice,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "name") String sortBy,
             @RequestParam(defaultValue = "asc") String sortOrder) {
 
-        // Parse comma-separated tag names
-        java.util.List<String> tagNames = null;
-        if (tag != null && !tag.trim().isEmpty()) {
-            tagNames = java.util.Arrays.stream(tag.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(java.util.stream.Collectors.toList());
+        // Parse comma-separated tag IDs
+        java.util.List<Long> tagIds = null;
+        if (tagId != null && !tagId.trim().isEmpty()) {
+            try {
+                tagIds = java.util.Arrays.stream(tagId.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .map(Long::parseLong)
+                        .collect(java.util.stream.Collectors.toList());
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid tagId format. Must be comma-separated numbers.");
+            }
         }
 
         Page<DishDto> dishes = dishService.searchDishes(
-                tagNames,
+                tagIds,
                 minPrice,
                 maxPrice,
                 search,

@@ -19,7 +19,6 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -28,10 +27,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -201,7 +199,7 @@ public class DishServiceImpl implements DishService {
 
     @Override
     public Page<DishDto> searchDishes(
-            List<String> tagNames,
+            List<Long> tagIds,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             String search,
@@ -222,13 +220,13 @@ public class DishServiceImpl implements DishService {
             "AND d.approval_status = :approvalStatus"
         );
         
-        boolean hasTagFilter = tagNames != null && !tagNames.isEmpty();
+        boolean hasTagFilter = tagIds != null && !tagIds.isEmpty();
         boolean hasMinPrice = minPrice != null;
         boolean hasMaxPrice = maxPrice != null;
         boolean hasSearch = search != null && !search.trim().isEmpty();
         
         if (hasTagFilter) {
-            queryBuilder.append(" AND dt.name IN (:tagNames)");
+            queryBuilder.append(" AND dt.tag_id IN (:tagIds)");
         }
         if (hasMinPrice) {
             queryBuilder.append(" AND d.price >= :minPrice");
@@ -244,7 +242,7 @@ public class DishServiceImpl implements DishService {
         query.setParameter("status", DishStatus.AVAILABLE.name());
         query.setParameter("approvalStatus", ApprovalStatus.APPROVED.name());
         if (hasTagFilter) {
-            query.setParameter("tagNames", tagNames);
+            query.setParameter("tagIds", tagIds);
         }
         if (hasMinPrice) {
             query.setParameter("minPrice", minPrice);
@@ -263,11 +261,6 @@ public class DishServiceImpl implements DishService {
                 .map(obj -> UUID.fromString(obj.toString()))
                 .collect(Collectors.toList());
 
-        // Nếu không có kết quả, trả về empty page
-        if (dishIds.isEmpty()) {
-            return Page.empty();
-        }
-
         // Build count query tương tự
         StringBuilder countQueryBuilder = new StringBuilder(
             "SELECT COUNT(DISTINCT d.dish_id) FROM dish d " +
@@ -278,7 +271,7 @@ public class DishServiceImpl implements DishService {
         );
         
         if (hasTagFilter) {
-            countQueryBuilder.append(" AND dt.name IN (:tagNames)");
+            countQueryBuilder.append(" AND dt.tag_id IN (:tagIds)");
         }
         if (hasMinPrice) {
             countQueryBuilder.append(" AND d.price >= :minPrice");
@@ -294,7 +287,7 @@ public class DishServiceImpl implements DishService {
         countQuery.setParameter("status", DishStatus.AVAILABLE.name());
         countQuery.setParameter("approvalStatus", ApprovalStatus.APPROVED.name());
         if (hasTagFilter) {
-            countQuery.setParameter("tagNames", tagNames);
+            countQuery.setParameter("tagIds", tagIds);
         }
         if (hasMinPrice) {
             countQuery.setParameter("minPrice", minPrice);
@@ -308,15 +301,18 @@ public class DishServiceImpl implements DishService {
         
         long total = ((Number) countQuery.getSingleResult()).longValue();
 
-        // Query lại các Dish bằng JPA để tránh lỗi JSON mapping
         Sort.Direction direction = sortOrder != null && sortOrder.equalsIgnoreCase("desc") ?
-                Sort.Direction.DESC :
-                Sort.Direction.ASC;
+            Sort.Direction.DESC :
+            Sort.Direction.ASC;
         Sort sort = Sort.by(direction, validSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
+        if (dishIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
         // Query dishes theo dishIds với sort và pagination
-        List<Dish> allDishes = dishRepository.findAllById(dishIds);
+        List<Dish> allDishes = new ArrayList<>(dishRepository.findAllById(dishIds));
         
         // Sort thủ công theo sortBy và sortOrder
         allDishes.sort((d1, d2) -> {
@@ -344,12 +340,25 @@ public class DishServiceImpl implements DishService {
         // Paginate thủ công
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), allDishes.size());
-        List<Dish> pagedDishes = start < allDishes.size() ? allDishes.subList(start, end) : List.of();
+        List<Dish> pagedDishes = start < allDishes.size() ? new ArrayList<>(allDishes.subList(start, end)) : new ArrayList<>();
 
-        // Tạo Page từ kết quả
-        Page<Dish> dishPage = new org.springframework.data.domain.PageImpl<>(pagedDishes, pageable, total);
+        // Map to DTOs safely using mapper (handles array cloning) and set restaurantId separately
+        List<DishDto> dtoList = new ArrayList<>(pagedDishes.size());
+        for (Dish dish : pagedDishes) {
+            DishDto dto = dishMapper.toDto(dish);
+            // Set restaurantId cautiously (avoid initializing lazy proxies)
+            try {
+                if (dish.getRestaurant() != null) {
+                    dto.setRestaurantId(dish.getRestaurant().getRestaurantId());
+                }
+            } catch (RuntimeException ignored) {
+                dto.setRestaurantId(null);
+            }
+            dtoList.add(dto);
+        }
 
-        return dishPage.map(dishMapper::toDto);
+        Page<DishDto> dtoPage = new org.springframework.data.domain.PageImpl<>(dtoList, pageable, total);
+        return dtoPage;
     }
 
     private String validateSortBy(String sortBy) {

@@ -13,14 +13,12 @@ public class DishDto {
 
     private UUID dishId;
     private UUID restaurantId;
-    private String restaurantName;
     private String name;
     private String[] images;
     private String description;
     private BigDecimal price;
     private DishStatus status = DishStatus.AVAILABLE;
     private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
-    private UUID approvedByAccountId;
     private LocalDateTime approvedAt;
     private String rejectionReason;
 }

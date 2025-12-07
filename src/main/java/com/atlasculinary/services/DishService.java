@@ -26,7 +26,7 @@ public interface DishService {
     Page<DishDto> getAvailableDishes(UUID restaurantId, int page, int size, String sortBy, String sortDirection);
 
     Page<DishDto> searchDishes(
-            List<String> tagNames,
+            List<Long> tagIds,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             String search,
