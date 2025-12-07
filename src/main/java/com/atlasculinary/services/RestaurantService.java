@@ -57,4 +57,6 @@ public interface RestaurantService {
     Page<RestaurantDto> getAllRestaurantsApproved(int page, int size, String sortBy, String sortDirection);
 
     List<RestaurantMapViewDto> getRestaurantsInMapView(int zoomLevel, BigDecimal minLat, BigDecimal maxLat, BigDecimal minLong, BigDecimal maxLong);
+
+    Page<RestaurantDto> searchRestaurantsByDishName(int page, int size, String sortBy, String sortDirection, String dishName);
 }

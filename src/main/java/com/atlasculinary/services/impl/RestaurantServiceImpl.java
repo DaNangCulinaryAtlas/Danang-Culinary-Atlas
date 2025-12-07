@@ -145,6 +145,23 @@ public class RestaurantServiceImpl implements RestaurantService {
         return restaurantPage.map(restaurantMapper::toDto);
     }
 
+    @Override
+    public Page<RestaurantDto> searchRestaurantsByDishName(int page, int size, String sortBy, String sortDirection, String dishName) {
+        if (dishName == null || dishName.trim().isEmpty()) {
+            throw new InvalidRequestException("Dish name must not be empty.");
+        }
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC :
+                Sort.Direction.ASC;
+
+        Sort sort = Sort.by(direction, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Restaurant> restaurantPage = restaurantRepository.findApprovedRestaurantsByDishName(dishName.trim(), pageable);
+        return restaurantPage.map(restaurantMapper::toDto);
+    }
+
 
     @Override
     public Page<RestaurantDto> getAllRestaurantsByVendor(UUID vendorId, int page, int size, String sortBy, String sortDirection) {
