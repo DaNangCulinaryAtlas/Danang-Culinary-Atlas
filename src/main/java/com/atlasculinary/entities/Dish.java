@@ -35,7 +35,7 @@ public class Dish {
     private String name;
     
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "images", columnDefinition = "json")
+    @Column(name = "images", columnDefinition = "text")
     private String[] images;
     
     @Column(name = "description", columnDefinition = "TEXT", nullable = false)
