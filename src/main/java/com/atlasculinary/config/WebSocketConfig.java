@@ -27,17 +27,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Endpoint #1: For Web browsers (with SockJS fallback)
+        // Endpoint for Web browsers only (with SockJS fallback)
         // URL: http://localhost:8081/ws
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS()
                 .setHeartbeatTime(25000);
-        
-        // Endpoint #2: For React Native/Mobile apps (native WebSocket only)
-        // URL: ws://YOUR_IP:8081/ws-mobile
-        registry.addEndpoint("/ws-mobile")
-                .setAllowedOriginPatterns("*");
     }
 
     @Override
