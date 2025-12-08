@@ -113,16 +113,17 @@ public class RestaurantController {
         return ResponseEntity.ok(restaurantsPage);
     }
 
-    @Operation(summary = "Search restaurants by dish name (APPROVED & ACTIVE)")
+    @Operation(summary = "Search restaurants by dish name with optional approval status filter")
     @GetMapping("/restaurants/by-dish")
     public ResponseEntity<Page<RestaurantDto>> searchRestaurantsByDishName(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection,
-            @RequestParam String dishName) {
+            @RequestParam String dishName,
+            @RequestParam(required = false) ApprovalStatus status) {
 
-        Page<RestaurantDto> restaurants = restaurantService.searchRestaurantsByDishName(page, size, sortBy, sortDirection, dishName);
+        Page<RestaurantDto> restaurants = restaurantService.searchRestaurantsByDishName(page, size, sortBy, sortDirection, dishName, status);
         return ResponseEntity.ok(restaurants);
     }
 

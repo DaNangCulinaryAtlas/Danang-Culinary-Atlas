@@ -108,14 +108,14 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
     @Query("SELECT r.restaurantId, r.name, r.address FROM Restaurant r WHERE r.ward.district.province.provinceId = :provinceId")
     List<Object[]> findRestaurantsByProvinceId(@Param("provinceId") Integer provinceId);
 
-            @Query("SELECT r FROM Restaurant r " +
-                    "WHERE r.restaurantId IN (" +
-                    "   SELECT DISTINCT d.restaurant.restaurantId FROM Dish d " +
-                    "   WHERE d.approvalStatus = com.atlasculinary.enums.ApprovalStatus.APPROVED " +
-                    "   AND d.status = com.atlasculinary.enums.DishStatus.AVAILABLE " +
-                    "   AND LOWER(d.name) LIKE LOWER(CONCAT('%', :dishName, '%'))" +
-                    ") " +
-                    "AND r.approvalStatus = com.atlasculinary.enums.ApprovalStatus.APPROVED " +
-                    "AND r.status = com.atlasculinary.enums.RestaurantStatus.ACTIVE")
-            Page<Restaurant> findApprovedRestaurantsByDishName(@Param("dishName") String dishName, Pageable pageable);
+    @Query("SELECT r FROM Restaurant r " +
+            "WHERE r.restaurantId IN (" +
+            "   SELECT DISTINCT d.restaurant.restaurantId FROM Dish d " +
+            "   WHERE d.approvalStatus = com.atlasculinary.enums.ApprovalStatus.APPROVED " +
+            "   AND d.status = com.atlasculinary.enums.DishStatus.AVAILABLE " +
+            "   AND LOWER(d.name) LIKE LOWER(CONCAT('%', :dishName, '%'))" +
+            ") " +
+            "AND (:approvalStatus IS NULL OR r.approvalStatus = :approvalStatus) " +
+            "AND r.status = com.atlasculinary.enums.RestaurantStatus.ACTIVE")
+    Page<Restaurant> findRestaurantsByDishName(@Param("dishName") String dishName, @Param("approvalStatus") ApprovalStatus approvalStatus, Pageable pageable);
 }

@@ -146,7 +146,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
-    public Page<RestaurantDto> searchRestaurantsByDishName(int page, int size, String sortBy, String sortDirection, String dishName) {
+    public Page<RestaurantDto> searchRestaurantsByDishName(int page, int size, String sortBy, String sortDirection, String dishName, ApprovalStatus approvalStatus) {
         if (dishName == null || dishName.trim().isEmpty()) {
             throw new InvalidRequestException("Dish name must not be empty.");
         }
@@ -158,7 +158,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         Sort sort = Sort.by(direction, sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Restaurant> restaurantPage = restaurantRepository.findApprovedRestaurantsByDishName(dishName.trim(), pageable);
+        Page<Restaurant> restaurantPage = restaurantRepository.findRestaurantsByDishName(dishName.trim(), approvalStatus, pageable);
         return restaurantPage.map(restaurantMapper::toDto);
     }
 
