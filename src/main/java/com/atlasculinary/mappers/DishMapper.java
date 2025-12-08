@@ -10,7 +10,7 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface DishMapper {
-    @Mapping(target = "restaurantId", ignore = true)
+    @Mapping(target = "restaurantId", expression = "java(dish.getRestaurant() != null ? dish.getRestaurant().getRestaurantId() : null)")
     DishDto toDto(Dish dish);
 
     List<DishDto> toDtoList(List<Dish> dishList);
