@@ -77,7 +77,7 @@ public class AdminAccountController {
 
     @Operation(summary = "Update account status")
     @PreAuthorize("hasAuthority('ADMIN_EDIT')")
-    @PutMapping("/{accountId}/status")
+    @PatchMapping("/{accountId}/status")
     public ResponseEntity<ApiResponse> updateAccountStatus(
             @PathVariable UUID accountId,
             @Valid @RequestBody UpdateAccountStatusRequest request) {

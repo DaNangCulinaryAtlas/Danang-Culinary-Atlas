@@ -41,7 +41,7 @@ public class ReviewController {
     }
 
     @Operation(summary = "Update an existing review")
-    @PutMapping("/reviews/{reviewId}")
+    @PatchMapping("/reviews/{reviewId}")
     @PreAuthorize("hasAuthority('REVIEW_UPDATE')")
     public ResponseEntity<ReviewDto> updateReview(
             @PathVariable UUID reviewId,

@@ -52,7 +52,7 @@ public class PermissionController {
         return ResponseEntity.ok(ApiResponse.success("Role permissions retrieved successfully", rolePermissions));
     }
 
-    @PutMapping("/roles/permissions")
+    @PatchMapping("/roles/permissions")
     @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
     @Operation(summary = "Update role permissions", description = "Update the permissions (actions) assigned to a specific role. This will replace all existing permissions.")
     public ResponseEntity<ApiResponse> updateRolePermissions(
