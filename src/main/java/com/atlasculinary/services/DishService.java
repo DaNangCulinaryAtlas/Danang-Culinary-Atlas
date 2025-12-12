@@ -30,6 +30,7 @@ public interface DishService {
             BigDecimal minPrice,
             BigDecimal maxPrice,
             String search,
+            String status,
             int page,
             int size,
             String sortBy,

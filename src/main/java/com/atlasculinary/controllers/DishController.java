@@ -94,7 +94,7 @@ public class DishController {
 
     @Operation(
         summary = "Search dishes with filters",
-        description = "Get a paginated list of dishes with filtering by tags, price range, and search by name. Only returns APPROVED and AVAILABLE dishes."
+        description = "Get a paginated list of dishes with filtering by tags, price range, search by name, and status. Only returns APPROVED dishes. Status can be: AVAILABLE, or HIDDEN."
     )
     @GetMapping("/dishes")
     public ResponseEntity<Page<DishDto>> searchDishes(
@@ -104,6 +104,7 @@ public class DishController {
             @RequestParam(required = false) java.math.BigDecimal minPrice,
             @RequestParam(required = false) java.math.BigDecimal maxPrice,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "name") String sortBy,
             @RequestParam(defaultValue = "asc") String sortOrder) {
 
@@ -126,6 +127,7 @@ public class DishController {
                 minPrice,
                 maxPrice,
                 search,
+                status,
                 page,
                 size,
                 sortBy,

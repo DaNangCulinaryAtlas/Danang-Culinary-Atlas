@@ -203,6 +203,7 @@ public class DishServiceImpl implements DishService {
             BigDecimal minPrice,
             BigDecimal maxPrice,
             String search,
+            String status,
             int page,
             int size,
             String sortBy,
@@ -216,15 +217,18 @@ public class DishServiceImpl implements DishService {
             "SELECT DISTINCT d.dish_id FROM dish d " +
             "LEFT JOIN dish_tag_map dtm ON dtm.dish_id = d.dish_id " +
             "LEFT JOIN dish_tag dt ON dt.tag_id = dtm.tag_id " +
-            "WHERE d.status = :status " +
-            "AND d.approval_status = :approvalStatus"
+            "WHERE d.approval_status = :approvalStatus"
         );
         
         boolean hasTagFilter = tagIds != null && !tagIds.isEmpty();
         boolean hasMinPrice = minPrice != null;
         boolean hasMaxPrice = maxPrice != null;
         boolean hasSearch = search != null && !search.trim().isEmpty();
+        boolean hasStatusFilter = status != null && !status.trim().isEmpty();
         
+        if (hasStatusFilter) {
+            queryBuilder.append(" AND d.status = :status");
+        }
         if (hasTagFilter) {
             queryBuilder.append(" AND dt.tag_id IN (:tagIds)");
         }
@@ -239,8 +243,15 @@ public class DishServiceImpl implements DishService {
         }
         
         Query query = entityManager.createNativeQuery(queryBuilder.toString());
-        query.setParameter("status", DishStatus.AVAILABLE.name());
         query.setParameter("approvalStatus", ApprovalStatus.APPROVED.name());
+        if (hasStatusFilter) {
+            try {
+                DishStatus dishStatus = DishStatus.valueOf(status.trim().toUpperCase());
+                query.setParameter("status", dishStatus.name());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid status value. Must be one of: AVAILABLE, SOLD_OUT, HIDDEN");
+            }
+        }
         if (hasTagFilter) {
             query.setParameter("tagIds", tagIds);
         }
@@ -266,10 +277,12 @@ public class DishServiceImpl implements DishService {
             "SELECT COUNT(DISTINCT d.dish_id) FROM dish d " +
             "LEFT JOIN dish_tag_map dtm ON dtm.dish_id = d.dish_id " +
             "LEFT JOIN dish_tag dt ON dt.tag_id = dtm.tag_id " +
-            "WHERE d.status = :status " +
-            "AND d.approval_status = :approvalStatus"
+            "WHERE d.approval_status = :approvalStatus"
         );
         
+        if (hasStatusFilter) {
+            countQueryBuilder.append(" AND d.status = :status");
+        }
         if (hasTagFilter) {
             countQueryBuilder.append(" AND dt.tag_id IN (:tagIds)");
         }
@@ -284,8 +297,15 @@ public class DishServiceImpl implements DishService {
         }
         
         Query countQuery = entityManager.createNativeQuery(countQueryBuilder.toString());
-        countQuery.setParameter("status", DishStatus.AVAILABLE.name());
         countQuery.setParameter("approvalStatus", ApprovalStatus.APPROVED.name());
+        if (hasStatusFilter) {
+            try {
+                DishStatus dishStatus = DishStatus.valueOf(status.trim().toUpperCase());
+                countQuery.setParameter("status", dishStatus.name());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid status value. Must be one of: AVAILABLE, SOLD_OUT, HIDDEN");
+            }
+        }
         if (hasTagFilter) {
             countQuery.setParameter("tagIds", tagIds);
         }
