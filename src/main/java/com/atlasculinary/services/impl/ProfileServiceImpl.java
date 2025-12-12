@@ -3,6 +3,7 @@ package com.atlasculinary.services.impl;
 import com.atlasculinary.dtos.AdminDto;
 import com.atlasculinary.dtos.UserDto;
 import com.atlasculinary.dtos.VendorDto;
+import com.atlasculinary.dtos.VendorOverviewDto;
 import com.atlasculinary.dtos.profile.*;
 import com.atlasculinary.entities.Account;
 import com.atlasculinary.entities.UserProfile;
@@ -15,10 +16,15 @@ import com.atlasculinary.repositories.AccountRepository;
 import com.atlasculinary.repositories.AdminRepository;
 import com.atlasculinary.repositories.UserRepository;
 import com.atlasculinary.repositories.VendorRepository;
+import com.atlasculinary.repositories.RestaurantRepository;
+import com.atlasculinary.repositories.DishRepository;
+import com.atlasculinary.repositories.ReviewRepository;
 import com.atlasculinary.services.ProfileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +35,9 @@ public class ProfileServiceImpl implements ProfileService {
     private final UserRepository userRepository;
     private final AdminRepository adminRepository;
     private final VendorRepository vendorRepository;
+    private final RestaurantRepository restaurantRepository;
+    private final DishRepository dishRepository;
+    private final ReviewRepository reviewRepository;
     private final UserMapper userMapper;
     private final VendorMapper vendorMapper;
     private final AdminMapper adminMapper;
@@ -91,5 +100,20 @@ public class ProfileServiceImpl implements ProfileService {
         VendorProfile savedProfile = vendorRepository.save(vendorProfile);
 
         return vendorMapper.toDto(savedProfile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public VendorOverviewDto getVendorOverview(String email) {
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+        
+        UUID vendorAccountId = account.getAccountId();
+        
+        Long totalRestaurants = restaurantRepository.countByOwnerAccount(account);
+        Long totalDishes = dishRepository.countByRestaurant_OwnerAccount_AccountId(vendorAccountId);
+        Long totalReviews = reviewRepository.countByVendorAccountId(vendorAccountId);
+        
+        return new VendorOverviewDto(totalRestaurants, totalDishes, totalReviews);
     }
 }

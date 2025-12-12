@@ -27,6 +27,8 @@ public interface DishRepository extends JpaRepository<Dish, UUID> {
 
     Page<Dish> findByApprovalStatus(ApprovalStatus approvalStatus, Pageable pageable);
 
+    Long countByRestaurant_OwnerAccount_AccountId(UUID vendorAccountId);
+
     @Query(value = "SELECT DISTINCT d.dish_id FROM dish d " +
            "LEFT JOIN dish_tag_map dtm ON dtm.dish_id = d.dish_id " +
            "LEFT JOIN dish_tag dt ON dt.tag_id = dtm.tag_id " +

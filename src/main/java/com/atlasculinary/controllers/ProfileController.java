@@ -4,6 +4,7 @@ import com.atlasculinary.dtos.AdminDto;
 import com.atlasculinary.dtos.ApiResponse;
 import com.atlasculinary.dtos.UserDto;
 import com.atlasculinary.dtos.VendorDto;
+import com.atlasculinary.dtos.VendorOverviewDto;
 import com.atlasculinary.dtos.profile.*;
 import com.atlasculinary.services.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -81,5 +82,14 @@ public class ProfileController {
         String email = authentication.getName();
         VendorDto profile = profileService.updateVendorProfile(email, updateDto);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin nhà cung cấp thành công", profile));
+    }
+
+    @Operation(summary = "Get vendor overview statistics", description = "Retrieve overview statistics for the currently authenticated vendor including total restaurants, dishes, and reviews")
+    @GetMapping("/vendor/overview")
+    @PreAuthorize("hasAuthority('PROFILE_VENDOR_VIEW')")
+    public ResponseEntity<ApiResponse> getVendorOverview(Authentication authentication) {
+        String email = authentication.getName();
+        VendorOverviewDto overview = profileService.getVendorOverview(email);
+        return ResponseEntity.ok(ApiResponse.success("Lấy thông tin tổng quan thành công", overview));
     }
 }
