@@ -57,7 +57,7 @@ public class AuthController {
   }
 
   @Operation(summary = "Thay đổi mật khẩu (yêu cầu đăng nhập)")
-  @PatchMapping("/change-password")
+  @PutMapping("/change-password")
   public ResponseEntity<ApiResponse> changePassword(
       @Valid @RequestBody ChangePasswordRequest changePasswordRequest,
       Authentication authentication) {

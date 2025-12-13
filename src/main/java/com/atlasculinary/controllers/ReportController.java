@@ -51,7 +51,7 @@ public class ReportController {
     }
 
     @Operation(summary = "Admin: Update report status", description = "Update the status of a specific report (e.g., PENDING, RESOLVED, REJECTED)")
-    @PatchMapping("/admin/reports/{reportId}/status")
+    @PutMapping("/admin/reports/{reportId}/status")
     @PreAuthorize("hasAuthority('REPORT_UPDATE_STATUS')")
     public ResponseEntity<ReportResponse> updateReportStatus(@PathVariable UUID reportId, @RequestBody UpdateReportStatusRequest request, Authentication authentication) {
         String adminUsername = authentication.getName();
