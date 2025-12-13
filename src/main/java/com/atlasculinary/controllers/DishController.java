@@ -46,7 +46,7 @@ public class DishController {
 
 
     @Operation(summary = "Update an existing dish's details")
-    @PutMapping("/dishes/{dishId}")
+    @PatchMapping("/dishes/{dishId}")
     @PreAuthorize("hasAuthority('DISH_UPDATE')")
     public ResponseEntity<DishDto> updateDish(
             @PathVariable UUID dishId,
