@@ -1,6 +1,7 @@
 package com.atlasculinary.entities;
 
 import com.atlasculinary.enums.ReportStatus;
+import com.atlasculinary.enums.ReportType;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,13 +29,14 @@ public class Report {
     @JoinColumn(name = "reporter_account_id", nullable = false)
     private Account reporterAccount;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "report_type", nullable = false, length = 20)
+    private ReportType reportType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restaurant_id")
     private Restaurant restaurant;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dish_id")
-    private Dish dish;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_id")

@@ -42,5 +42,7 @@ public interface NotificationService {
 
     void notifyVendorNewUserReview(UUID reviewId);
 
+    void notifyAdminNewReport(UUID reportId);
+
 //    void notifyUserVendorReply(UUID replyId);
 }

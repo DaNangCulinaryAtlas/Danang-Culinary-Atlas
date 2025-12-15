@@ -13,6 +13,7 @@ public enum NotificationType {
     RESTAURANT_REJECTED,    // Admin từ chối, gửi đến Vendor
 
     NEW_REVIEW,             // Có đánh giá mới về nhà hàng
-    NEW_COMMENT             // Bình luận mới
+    NEW_COMMENT,             // Bình luận mới
 
+    NEW_REPORT
 }

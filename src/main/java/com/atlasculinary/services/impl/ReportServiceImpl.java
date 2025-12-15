@@ -5,11 +5,13 @@ import com.atlasculinary.dtos.ReportResponse;
 import com.atlasculinary.dtos.ReportStatisticsResponse;
 import com.atlasculinary.entities.*;
 import com.atlasculinary.enums.ReportStatus;
+import com.atlasculinary.enums.ReportType;
 import com.atlasculinary.repositories.ReportRepository;
 import com.atlasculinary.repositories.AccountRepository;
 import com.atlasculinary.repositories.RestaurantRepository;
 import com.atlasculinary.repositories.DishRepository;
 import com.atlasculinary.repositories.ReviewRepository;
+import com.atlasculinary.services.NotificationService;
 import com.atlasculinary.services.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,10 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
 public class ReportServiceImpl implements ReportService {
+    private static final Logger LOGGER = Logger.getLogger(ReportServiceImpl.class.getName());
     @Autowired
     private ReportRepository reportRepository;
     @Autowired
@@ -32,6 +36,8 @@ public class ReportServiceImpl implements ReportService {
     private DishRepository dishRepository;
     @Autowired
     private ReviewRepository reviewRepository;
+    @Autowired
+    private NotificationService notificationService;
 
     @Override
     @Transactional
@@ -41,19 +47,24 @@ public class ReportServiceImpl implements ReportService {
         report.setReporterAccount(reporter);
         if (request.getRestaurantId() != null) {
             Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId()).orElse(null);
+            report.setReportType(ReportType.RESTAURANT_REPORT);
             report.setRestaurant(restaurant);
-        }
-        if (request.getDishId() != null) {
-            Dish dish = dishRepository.findById(request.getDishId()).orElse(null);
-            report.setDish(dish);
         }
         if (request.getReviewId() != null) {
             Review review = reviewRepository.findById(request.getReviewId()).orElse(null);
+            report.setReportType(ReportType.REVIEW_REPORT);
             report.setReview(review);
         }
         report.setReason(request.getReason());
         report.setStatus(ReportStatus.PENDING);
+        // Lưu xuống DB
         report = reportRepository.save(report);
+
+        try {
+            notificationService.notifyAdminNewReport(report.getReportId());
+        } catch (Exception e) {
+            LOGGER.warning("Không thể gửi thông báo report tới Admin: " + e.getMessage());
+        }
         return toResponse(report);
     }
 

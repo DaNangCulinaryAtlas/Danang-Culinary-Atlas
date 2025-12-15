@@ -2,12 +2,10 @@ package com.atlasculinary.services.impl;
 
 import com.atlasculinary.controllers.WebSocketNotificationController;
 import com.atlasculinary.dtos.*;
-import com.atlasculinary.entities.Account;
-import com.atlasculinary.entities.Notification;
-import com.atlasculinary.entities.Restaurant;
-import com.atlasculinary.entities.Review;
+import com.atlasculinary.entities.*;
 import com.atlasculinary.exceptions.ResourceNotFoundException;
 import com.atlasculinary.mappers.NotificationMapper;
+import com.atlasculinary.repositories.ReportRepository;
 import com.atlasculinary.repositories.ReviewRepository;
 import com.atlasculinary.services.*;
 import com.atlasculinary.utils.NameUtil;
@@ -22,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.access.AccessDeniedException;
@@ -41,6 +40,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final JavaMailSender mailSender;
     private final NotificationMapper notificationMapper;
     private final ReviewRepository reviewRepository;
+    private final ReportRepository reportRepository;
     private final WebSocketNotificationController webSocketController;
 
     public NotificationServiceImpl(
@@ -51,6 +51,7 @@ public class NotificationServiceImpl implements NotificationService {
             VendorService vendorService,
             JavaMailSender mailSender,
             ReviewRepository reviewRepository,
+            ReportRepository reportRepository,
             WebSocketNotificationController webSocketController
     ) {
         this.notificationRepository = notificationRepository;
@@ -60,6 +61,7 @@ public class NotificationServiceImpl implements NotificationService {
         this.vendorService = vendorService;
         this.mailSender = mailSender;
         this.reviewRepository = reviewRepository;
+        this.reportRepository = reportRepository;
         this.webSocketController = webSocketController;
     }
     @Value("${spring.mail.username}")
@@ -88,66 +90,83 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void sendWelcomeNotification(UUID accountId) {
-        var account = accountService.getAccountById(accountId);
-        String recipientEmail = account.getEmail();
         try {
+            var account = accountService.getAccountById(accountId);
+            String recipientEmail = account.getEmail();
             String subject = "Chào mừng đến với Atlas Culinary!";
             String content = buildWelcomeEmailContent(recipientEmail);
             sendEmail(recipientEmail, subject, content);
-        } catch (MessagingException e) {
-            LOGGER.severe("Lỗi gửi email chào mừng tới " + recipientEmail + ": " + e.getMessage());
+        } catch (Exception e) {
+            LOGGER.severe("Lỗi gửi email thông báo welcome: " + e.getMessage());
         }
+
     }
 
     @Override
     public void sendPasswordResetRequest(PasswordResetRequest passwordResetRequest) {
-        var accountDto = accountService.getAccountById(passwordResetRequest.getAccountId());
-        String recipientEmail = accountDto.getEmail();
-        String platform = passwordResetRequest.getPlatform() != null ? passwordResetRequest.getPlatform() : "web";
-        
-        try {
+        try{
+            var accountDto = accountService.getAccountById(passwordResetRequest.getAccountId());
+            String recipientEmail = accountDto.getEmail();
+            String platform = passwordResetRequest.getPlatform() != null ? passwordResetRequest.getPlatform() : "web";
+
             String subject = "Yêu cầu Đặt lại Mật khẩu";
             String content;
-            
-            // Chọn template email phù hợp với platform
+
             if ("mobile".equalsIgnoreCase(platform)) {
                 content = buildPasswordResetContentForMobile(passwordResetRequest.getResetToken());
             } else {
                 content = buildPasswordResetContentForWeb(passwordResetRequest.getResetToken());
             }
-            
+
             sendEmail(recipientEmail, subject, content);
             LOGGER.info("Đã gửi email reset password cho " + recipientEmail + " (platform: " + platform + ")");
-        } catch (MessagingException e) {
-            LOGGER.severe("Lỗi gửi email đặt lại mật khẩu tới " + recipientEmail + ": " + e.getMessage());
+        } catch (Exception e) {
+            LOGGER.severe("Lỗi gửi email thông báo reset password: " + e.getMessage());
         }
     }
 
     @Override
-    @Async
     public void notifyAdminNewRestaurantSubmission(UUID restaurantId) {
         try {
-            // 1. Gửi Email cho Admin
-            String subject = "[CẦN XÉT DUYỆT] Nhà hàng mới: " + restaurantId;
+            // [NÊN LÀM] Lấy tên quán ăn để hiển thị cho đẹp, thay vì chỉ hiện UUID
+            // Ví dụ: Restaurant restaurant = restaurantRepository.findById(restaurantId).orElse(...);
+            // String restaurantName = restaurant.getName();
+
+            String subject = "[CẦN XÉT DUYỆT] Nhà hàng mới đang chờ duyệt"; // Hoặc chèn tên quán vào đây
             String content = buildAdminSubmissionContent(restaurantId);
+
+            // 1. Lấy danh sách Admin
             List<AdminDto> adminDtoList = adminService.getAllAdmins();
-            for (var adminDto: adminDtoList) {
-                String adminEmail = adminDto.getEmail();
-                UUID adminAccountId = adminDto.getAccountId();
 
-                sendEmail(adminEmail, subject, content);
+            // 2. Gửi Email 1 lần cho cả nhóm (Sử dụng BCC)
+            // Gom danh sách email
+            String[] adminEmails = adminDtoList.stream()
+                    .map(AdminDto::getEmail)
+                    .toArray(String[]::new);
 
-                AddNotificationRequest addNotificationRequest = new AddNotificationRequest(
-                        adminAccountId,
-                        "Nhà hàng mới cần duyệt",
-                        "Một nhà hàng mới đã được gửi lên. ID: " + restaurantId,
-                        NotificationType.RESTAURANT_SUBMISSION,
-                        "/admin/review/" + restaurantId);
-
-                createInAppNotification(addNotificationRequest);
+            if (adminEmails.length > 0) {
+                sendEmailToGroup(adminEmails, subject, content);
             }
-        } catch (MessagingException e) {
-            LOGGER.severe("Lỗi gửi email thông báo xét duyệt tới Admin: " + e.getMessage());
+
+            for (var adminDto : adminDtoList) {
+                try {
+                    AddNotificationRequest addNotificationRequest = new AddNotificationRequest(
+                            adminDto.getAccountId(),
+                            "Nhà hàng mới cần duyệt",
+                            "Một nhà hàng mới đã được gửi lên. ID: " + restaurantId,
+                            NotificationType.RESTAURANT_SUBMISSION,
+                            "/admin/review/" + restaurantId
+                    );
+
+                    createInAppNotification(addNotificationRequest);
+                } catch (Exception innerEx) {
+                    // Log lỗi nhẹ để không ảnh hưởng luồng chính
+                    LOGGER.warning("Lỗi tạo noti cho Admin " + adminDto.getEmail());
+                }
+            }
+
+        } catch (Exception e) {
+            LOGGER.severe("Lỗi luồng notifyAdminNewRestaurantSubmission: " + e.getMessage());
         }
     }
 
@@ -178,7 +197,7 @@ public class NotificationServiceImpl implements NotificationService {
             );
             createInAppNotification(addNotificationRequest);
 
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             LOGGER.severe("Lỗi gửi email cập nhật trạng thái tới Vendor " + vendorEmail + ": " + e.getMessage());
         }
     }
@@ -188,28 +207,39 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             String errorTitle = request.getErrorTitle();
             String errorMessage = request.getErrorMessage();
-            // Lấy danh sách tất cả Admin
+
             List<AdminDto> adminDtoList = adminService.getAllAdmins();
+
+            if (adminDtoList.isEmpty()) return;
 
             String subject = "[KHẨN CẤP] Lỗi Hệ Thống: " + errorTitle;
             String content = buildSystemErrorContent(errorTitle, errorMessage);
 
-            for (var admin : adminDtoList) {
-                // 1. Gửi Email cho từng Admin
-                sendEmail(admin.getEmail(), subject, content);
+            String[] adminEmails = adminDtoList.stream()
+                    .map(AdminDto::getEmail)
+                    .toArray(String[]::new);
 
-                // 2. Tạo In-App Notification cho từng Admin
-                AddNotificationRequest addNotificationRequest = new AddNotificationRequest(
-                        admin.getAccountId(),
-                        "Cảnh báo Lỗi Hệ thống",
-                        errorTitle + ". Chi tiết: " + errorMessage,
-                        NotificationType.SYSTEM_ALERT,
-                        "/admin/system-logs");
-
-                createInAppNotification(addNotificationRequest);
+            if (adminEmails.length > 0) {
+                sendEmailToGroup(adminEmails, subject, content);
             }
-        } catch (MessagingException e) {
-            LOGGER.severe("Lỗi gửi email cảnh báo lỗi hệ thống: " + e.getMessage());
+
+            for (var admin : adminDtoList) {
+                try {
+                    AddNotificationRequest addNotificationRequest = new AddNotificationRequest(
+                            admin.getAccountId(),
+                            "Cảnh báo Lỗi Hệ thống",
+                            errorTitle + ". Chi tiết: " + errorMessage,
+                            NotificationType.SYSTEM_ALERT,
+                            "/admin/system-logs"
+                    );
+                    createInAppNotification(addNotificationRequest);
+                } catch (Exception innerEx) {
+                    LOGGER.warning("Không thể tạo In-App Noti cho admin " + admin.getEmail());
+                }
+            }
+
+        } catch (Exception e) {
+            LOGGER.severe("CRITICAL: Lỗi gửi cảnh báo hệ thống: " + e.getMessage());
         }
     }
 
@@ -347,21 +377,143 @@ public class NotificationServiceImpl implements NotificationService {
 
         } catch (ResourceNotFoundException e) {
             LOGGER.warning("Không tìm thấy Review hoặc thông tin liên quan với ID: " + reviewId);
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             LOGGER.severe("Lỗi gửi email thông báo Review mới: " + e.getMessage());
         }
     }
 
-    private void sendEmail(String to, String subject, String content) throws MessagingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+    @Override
+    @Transactional
+    public void notifyAdminNewReport(UUID reportId) {
+        try {
+            // Lấy thông tin Report
+            Report report = reportRepository.findById(reportId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Report not found with ID: " + reportId));
 
-        helper.setFrom(fromEmail);
-        helper.setTo(to);
-        helper.setSubject(subject);
-        helper.setText(content, true);
+            // Lấy thông tin hiển thị (Sử dụng Helper Method trong Entity Report)
+            String targetName = report.getRestaurant().getName();
+            String reportTypeStr = report.getReportType().toString();
+            String reason = report.getReason();
+            String reporterEmail = report.getReporterAccount().getEmail();
 
-        mailSender.send(message);
+            // Chuẩn bị nội dung thông báo
+            String notiTitle = "Báo cáo vi phạm mới: " + reportTypeStr;
+            // Message ngắn gọn cho Notification
+            String notiMessage = "Đối tượng \"" + targetName + "\" bị báo cáo. Lý do: " + reason;
+
+            String targetUrl = "/admin/reports/" + reportId;
+
+            String emailSubject = "[ADMIN] Cần xử lý báo cáo: " + targetName;
+            String emailContent = buildAdminReportContent(reportTypeStr, targetName, reason, reporterEmail, reportId);
+
+            List<AdminDto> adminDtoList = adminService.getAllAdmins();
+
+            String[] adminEmails = adminDtoList.stream()
+                    .map(AdminDto::getEmail)
+                    .toArray(String[]::new);
+
+            if (adminEmails.length > 0) {
+                sendEmailToGroup(adminEmails, emailSubject, emailContent);
+            }
+            for (AdminDto admin : adminDtoList) {
+                try {
+                    AddNotificationRequest addNotificationRequest = new AddNotificationRequest(
+                            admin.getAccountId(),
+                            notiTitle,
+                            notiMessage,
+                            NotificationType.NEW_REPORT,
+                            targetUrl
+                    );
+                    createInAppNotification(addNotificationRequest);
+                } catch (Exception innerEx) {
+                    LOGGER.warning("Lỗi tạo noti cho Admin " + admin.getAccountId());
+                }
+            }
+
+        } catch (ResourceNotFoundException e) {
+            LOGGER.warning("Không tìm thấy Report với ID: " + reportId);
+        } catch (Exception e) {
+            LOGGER.severe("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+    private String buildAdminReportContent(String type, String targetName, String reason, String reporter, UUID reportId) {
+        return "<html>" +
+                "<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>" +
+                "<div style='background-color: #f8d7da; padding: 15px; border-radius: 5px; color: #721c24; margin-bottom: 20px;'>" +
+                "<h2 style='margin: 0;'>⚠️ Yêu cầu xử lý vi phạm</h2>" +
+                "</div>" +
+                "<p>Hệ thống vừa nhận được một báo cáo mới từ người dùng <b>" + reporter + "</b>.</p>" +
+                "<table style='width: 100%; border-collapse: collapse; margin-bottom: 20px;'>" +
+                "  <tr>" +
+                "    <td style='padding: 8px; border-bottom: 1px solid #ddd;'><b>Loại đối tượng:</b></td>" +
+                "    <td style='padding: 8px; border-bottom: 1px solid #ddd;'>" + type + "</td>" +
+                "  </tr>" +
+                "  <tr>" +
+                "    <td style='padding: 8px; border-bottom: 1px solid #ddd;'><b>Tên đối tượng:</b></td>" +
+                "    <td style='padding: 8px; border-bottom: 1px solid #ddd;'><b>" + targetName + "</b></td>" +
+                "  </tr>" +
+                "  <tr>" +
+                "    <td style='padding: 8px; border-bottom: 1px solid #ddd;'><b>Lý do báo cáo:</b></td>" +
+                "    <td style='padding: 8px; border-bottom: 1px solid #ddd; color: #d9534f;'>" + reason + "</td>" +
+                "  </tr>" +
+                "  <tr>" +
+                "    <td style='padding: 8px; border-bottom: 1px solid #ddd;'><b>ID Báo cáo:</b></td>" +
+                "    <td style='padding: 8px; border-bottom: 1px solid #ddd; font-family: monospace;'>" + reportId + "</td>" +
+                "  </tr>" +
+                "</table>" +
+                "<p>Vui lòng đăng nhập vào trang quản trị để xem chi tiết và đưa ra quyết định (Xóa/Bỏ qua).</p>" +
+                "<div style='text-align: center; margin-top: 30px;'>" +
+                "  <a href='" + frontendUrl + "/admin/reports/" + reportId + "' " +
+                "     style='background-color: #dc3545; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-weight: bold;'>" +
+                "     Xử lý ngay" +
+                "  </a>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
+    }
+
+    @Async
+    private void sendEmail(String to, String subject, String content) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(content, true);
+
+            mailSender.send(message);
+            System.out.println("Đã gửi mail thành công đến: " + to);
+
+        } catch (MessagingException | MailException e) {
+            System.err.println("Gửi mail thất bại đến " + to + ": " + e.getMessage());
+        }
+    }
+
+
+    @Async
+    public void sendEmailToGroup(String[] recipients, String subject, String content) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+
+            helper.setBcc(recipients);
+            // Khi dùng BCC, nên set field "To" là chính email hệ thống hoặc để trống (tùy mail server)
+            helper.setTo(fromEmail);
+
+            helper.setSubject(subject);
+            helper.setText(content, true);
+
+            mailSender.send(message);
+            LOGGER.info("Đã gửi email nhóm thành công tới " + recipients.length + " người.");
+
+        } catch (MessagingException | MailException e) {
+            LOGGER.severe("Gửi email nhóm thất bại: " + e.getMessage());
+        }
     }
 
     private String buildWelcomeEmailContent(String username) {

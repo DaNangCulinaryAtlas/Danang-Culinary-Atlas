@@ -80,7 +80,8 @@ public class RestaurantTagServiceImpl implements RestaurantTagService {
                     RestaurantTagMap map = new RestaurantTagMap();
                     map.setRestaurant(restaurant);
                     map.setRestaurantTag(tag);
-
+                    map.setRestaurantId(restaurantId);
+                    map.setTagId(tag.getTagId());
                     return map;
                 })
                 .collect(Collectors.toList());
