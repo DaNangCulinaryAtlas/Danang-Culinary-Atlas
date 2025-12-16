@@ -3,9 +3,7 @@ package com.atlasculinary.entities;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
 
 import java.util.UUID; // Cần import UUID
 
@@ -29,6 +27,8 @@ public class RestaurantTagMap {
     @MapsId("restaurantId")
     @JoinColumn(name = "restaurant_id")
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Restaurant restaurant;
 
     @ManyToOne(fetch = FetchType.LAZY)
