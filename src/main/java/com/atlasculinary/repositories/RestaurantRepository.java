@@ -118,4 +118,44 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, UUID> {
             "AND (:approvalStatus IS NULL OR r.approvalStatus = :approvalStatus) " +
             "AND r.status = com.atlasculinary.enums.RestaurantStatus.ACTIVE")
     Page<Restaurant> findRestaurantsByDishName(@Param("dishName") String dishName, @Param("approvalStatus") ApprovalStatus approvalStatus, Pageable pageable);
+
+
+    // SỬA LẠI QUERY NÀY
+    @Query("SELECT r FROM Restaurant r " + // 1. XÓA TỪ KHÓA 'DISTINCT'
+            "LEFT JOIN r.restaurantStats s " +
+            // 2. XÓA DÒNG 'LEFT JOIN r.restaurantTagMapSet tm' -> Nguyên nhân gây trùng lặp
+            "WHERE " +
+            "r.status = com.atlasculinary.enums.RestaurantStatus.ACTIVE " +
+            "AND (:approvalStatus IS NULL OR r.approvalStatus = :approvalStatus) " +
+
+            // Tìm theo tên quán (đã xử lý lower ở Service)
+            "AND (:keyword IS NULL OR LOWER(r.name) LIKE :keyword) " +
+
+            // Tìm theo món ăn (dùng EXISTS -> Không gây trùng)
+            "AND (:dishName IS NULL OR EXISTS (" +
+            "   SELECT 1 FROM Dish d " +
+            "   WHERE d.restaurant = r " +
+            "   AND d.status = com.atlasculinary.enums.DishStatus.AVAILABLE " +
+            "   AND d.approvalStatus = com.atlasculinary.enums.ApprovalStatus.APPROVED " +
+            "   AND LOWER(d.name) LIKE :dishName" +
+            ")) " +
+
+            // 3. SỬA LẠI: Dùng EXISTS thay vì JOIN tm để lọc theo Tag/Cuisine
+            "AND ((:cuisineIds) IS NULL OR EXISTS (" +
+            "   SELECT 1 FROM RestaurantTagMap tm " +
+            "   WHERE tm.restaurant = r " +
+            "   AND tm.restaurantTag.tagId IN (:cuisineIds)" +
+            ")) " +
+
+            "AND (:minRating IS NULL OR s.averageRating >= :minRating) " +
+            "AND (:maxRating IS NULL OR s.averageRating <= :maxRating)")
+    Page<Restaurant> searchRestaurants(
+            @Param("keyword") String keyword,
+            @Param("dishName") String dishName,
+            @Param("cuisineIds") List<Long> cuisineIds,
+            @Param("approvalStatus") ApprovalStatus approvalStatus,
+            @Param("minRating") BigDecimal minRating,
+            @Param("maxRating") BigDecimal maxRating,
+            Pageable pageable
+    );
 }

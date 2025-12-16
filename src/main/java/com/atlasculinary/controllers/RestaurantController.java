@@ -9,6 +9,7 @@ import com.atlasculinary.enums.ApprovalStatus;
 import com.atlasculinary.securities.CustomAccountDetails;
 import com.atlasculinary.services.RestaurantService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -98,6 +99,47 @@ public class RestaurantController {
         return ResponseEntity.ok(restaurantsPage);
     }
 
+    @Operation(summary = "Unified Search: Search restaurants by name, dish, cuisine, rating")
+    @GetMapping("/restaurants/search_unified")
+    public ResponseEntity<Page<RestaurantDto>> searchRestaurants(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection,
+
+            // Các bộ lọc (đều là optional - required = false)
+            @Parameter(description = "Search by restaurant name")
+            @RequestParam(required = false) String keyword,     // Thay 'name' bằng 'keyword' cho tổng quát
+
+            @Parameter(description = "Search by dish name")
+            @RequestParam(required = false) String dishName,    // Thêm tìm theo món
+
+            @Parameter(description = "Filter by Cuisine/Tag IDs")
+            @RequestParam(required = false) List<Long> cuisineIds, // Thêm lọc theo Tag
+
+            @Parameter(description = "Filter by minimum rating")
+            @RequestParam(required = false) BigDecimal minRating,
+
+            @Parameter(description = "Filter by maximum rating")
+            @RequestParam(required = false) BigDecimal maxRating
+    ) {
+        // Gọi đến hàm search unified trong Service
+        // Vì đây là API public cho người dùng tìm kiếm, ta mặc định ApprovalStatus = APPROVED
+        Page<RestaurantDto> restaurantsPage = restaurantService.searchRestaurants(
+                page,
+                size,
+                sortBy,
+                sortDirection,
+                keyword,
+                dishName,
+                cuisineIds,
+                ApprovalStatus.APPROVED, // Hardcode APPROVED
+                minRating,
+                maxRating
+        );
+
+        return ResponseEntity.ok(restaurantsPage);
+    }
     @Operation(summary = "Search approved restaurants by name with pagination and sorting")
     @GetMapping("/restaurants/name")
     public ResponseEntity<Page<RestaurantDto>> searchApprovedRestaurantsByName(

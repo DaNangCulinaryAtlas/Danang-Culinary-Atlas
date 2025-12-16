@@ -1,64 +1,118 @@
 package com.atlasculinary.services.impl;
 
+import com.atlasculinary.entities.Restaurant;
 import com.atlasculinary.entities.RestaurantStats;
 import com.atlasculinary.exceptions.ResourceNotFoundException;
 import com.atlasculinary.repositories.RestaurantStatsRepository;
 import com.atlasculinary.services.RestaurantStatsService;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.scheduling.annotation.Async;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class RestaurantStatsServiceImpl implements RestaurantStatsService {
 
     private final RestaurantStatsRepository statRepository;
-    // Độ chính xác khi chia
+
     private static final int CALCULATE_SCALE = 5;
-    // Độ chính xác khi hiển thị
     private static final int DISPLAY_SCALE = 1;
 
+    @Override
+    @Transactional
+    public void createInitialStats(Restaurant restaurant) {
+        RestaurantStats stats = new RestaurantStats();
+        stats.setRestaurant(restaurant);
+        stats.setCreatedAt(LocalDateTime.now());
+        stats.setUpdatedAt(LocalDateTime.now());
+        statRepository.save(stats);
+    }
+
+    // --- TRAFFIC (Async để không làm chậm API chính) ---
+
+    @Override
     @Async
     @Transactional
-    public void updateStatsOnReviewEvent(UUID restaurantId, Integer oldRating, Integer newRating) {
+    public void incrementViewCount(UUID restaurantId) {
+        statRepository.incrementViewCount(restaurantId);
+    }
 
-        RestaurantStats stats = statRepository.findById(restaurantId)
-                .orElseThrow(() -> new ResourceNotFoundException("RestaurantStat not found for ID: " + restaurantId));
+    @Override
+    @Async
+    @Transactional
+    public void incrementSearchCount(UUID restaurantId) {
+        statRepository.incrementSearchCount(restaurantId);
+    }
 
-        Integer currentSum = stats.getSumOfRatings();
-        Integer currentTotal = stats.getTotalReviews();
+    // --- REVIEW LOGIC ---
 
-        if (oldRating == null && newRating != null) { // THÊM MỚI
-            currentSum += newRating;
-            currentTotal += 1;
-        } else if (oldRating != null && newRating == null) { // XÓA
-            currentSum -= oldRating;
-            currentTotal -= 1;
-        } else if (oldRating != null && newRating != null) { // CHỈNH SỬA
-            currentSum = currentSum - oldRating + newRating;
-        } else {
-            return; // Không có thay đổi
+    @Override
+    @Transactional
+    public void handleNewReview(UUID restaurantId, Integer rating) {
+        RestaurantStats stats = getEntityById(restaurantId);
+        stats.setTotalReviews(stats.getTotalReviews() + 1);
+        stats.setSumOfRatings(stats.getSumOfRatings() + rating);
+        recalculateAndSave(stats);
+    }
+
+    @Override
+    @Transactional
+    public void handleUpdatedReview(UUID restaurantId, Integer oldRating, Integer newRating) {
+        if (oldRating.equals(newRating)) return;
+
+        RestaurantStats stats = getEntityById(restaurantId);
+        stats.setSumOfRatings(stats.getSumOfRatings() - oldRating + newRating);
+        recalculateAndSave(stats);
+    }
+
+    @Override
+    @Transactional
+    public void handleDeleteReview(UUID restaurantId, Integer rating) {
+        RestaurantStats stats = getEntityById(restaurantId);
+        if (stats.getTotalReviews() > 0) {
+            stats.setTotalReviews(stats.getTotalReviews() - 1);
+            stats.setSumOfRatings(stats.getSumOfRatings() - rating);
         }
+        recalculateAndSave(stats);
+    }
 
-        if (currentTotal <= 0) {
+    @Override
+    public void incrementSearchCountBatch(List<UUID> foundIds) {
+        for (var Id: foundIds) {
+            incrementSearchCount(Id);
+        }
+    }
+
+    // --- PRIVATE HELPERS ---
+
+    private RestaurantStats getEntityById(UUID id) {
+        return statRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RestaurantStat not found for ID: " + id));
+    }
+
+    private void recalculateAndSave(RestaurantStats stats) {
+        int total = stats.getTotalReviews();
+        int sum = stats.getSumOfRatings();
+
+        if (total <= 0) {
             stats.setTotalReviews(0);
             stats.setSumOfRatings(0);
-            stats.setAverageRating(BigDecimal.ZERO.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
+            stats.setAverageRating(BigDecimal.ZERO);
         } else {
-            BigDecimal sumAsDecimal = new BigDecimal(currentSum);
-            BigDecimal totalAsDecimal = new BigDecimal(currentTotal);
+            BigDecimal sumDec = new BigDecimal(sum);
+            BigDecimal totalDec = new BigDecimal(total);
 
-            BigDecimal newAverage = sumAsDecimal.divide(
-                    totalAsDecimal, CALCULATE_SCALE, RoundingMode.HALF_UP);
+            BigDecimal avg = sumDec.divide(totalDec, CALCULATE_SCALE, RoundingMode.HALF_UP)
+                    .setScale(DISPLAY_SCALE, RoundingMode.HALF_UP);
 
-            stats.setTotalReviews(currentTotal);
-            stats.setSumOfRatings(currentSum);
-            stats.setAverageRating(newAverage.setScale(DISPLAY_SCALE, RoundingMode.HALF_UP));
+            stats.setAverageRating(avg);
         }
 
         stats.setUpdatedAt(LocalDateTime.now());

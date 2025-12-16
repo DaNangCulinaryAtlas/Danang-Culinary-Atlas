@@ -30,7 +30,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     private static final Logger LOGGER = Logger.getLogger(RestaurantServiceImpl.class.getName());
     private final RestaurantRepository restaurantRepository;
     private final RestaurantTagService restaurantTagService;
-    private final DishTagService dishTagService;
+    private final RestaurantStatsService restaurantStatsService;
     private final AccountService accountService;
     private final WardRepository wardRepository;
     private final RestaurantMapper restaurantMapper;
@@ -67,7 +67,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     public RestaurantDto getRestaurantById(UUID restaurantId) {
         var restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with ID: " + restaurantId));
-
+        restaurantStatsService.incrementViewCount(restaurantId);
         return restaurantMapper.toDto(restaurant);
     }
 
@@ -88,6 +88,57 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
+    @Transactional
+    public Page<RestaurantDto> searchRestaurants(
+            int page, int size, String sortBy, String sortDirection,
+            String keyword, String dishName, List<Long> cuisineIds,
+            ApprovalStatus approvalStatus, BigDecimal minRating, BigDecimal maxRating
+    ) {
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC :
+                Sort.Direction.ASC;
+
+        Sort sort = Sort.by(direction, sortBy);
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // 1. Chuẩn hóa dữ liệu: TRIM + LOWER CASE + %
+        String safeKeyword = null;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            // SỬA: Thêm .toLowerCase()
+            safeKeyword = "%" + keyword.trim().toLowerCase() + "%";
+        }
+
+        String safeDishName = null;
+        if (dishName != null && !dishName.trim().isEmpty()) {
+            // SỬA: Thêm .toLowerCase()
+            safeDishName = "%" + dishName.trim().toLowerCase() + "%";
+        }
+
+        List<Long> safeCuisineIds = (cuisineIds != null && !cuisineIds.isEmpty()) ? cuisineIds : null;
+
+        Page<Restaurant> resultPage = restaurantRepository.searchRestaurants(
+                safeKeyword,
+                safeDishName,
+                safeCuisineIds,
+                approvalStatus,
+                minRating,
+                maxRating,
+                pageable
+        );
+
+        List<UUID> foundIds = resultPage.getContent().stream()
+                .map(Restaurant::getRestaurantId)
+                .toList();
+
+        if (!foundIds.isEmpty()) {
+            restaurantStatsService.incrementSearchCountBatch(foundIds);
+        }
+
+        return resultPage.map(restaurantMapper::toDto);
+    }
+
+    @Override
     public Page<RestaurantDto> searchApprovedRestaurantsByName( int page, int size, String sortBy, String sortDirection, String restaurantName) {
 
         Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ?
@@ -104,6 +155,7 @@ public class RestaurantServiceImpl implements RestaurantService {
                         restaurantName,
                         pageable
                 );
+
         return restaurantPage.map(restaurantMapper::toDto);
     }
 
