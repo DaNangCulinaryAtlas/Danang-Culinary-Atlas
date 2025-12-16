@@ -1,6 +1,7 @@
 package com.atlasculinary.entities;
 
 import com.atlasculinary.enums.ApprovalStatus;
+import com.atlasculinary.enums.LicenseType; // Import Enum mới
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,9 +25,13 @@ public class BusinessLicense {
     @Column(name = "license_id", columnDefinition = "UUID")
     private UUID licenseId;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_account_id", unique = true, nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_account_id", nullable = false)
     private Account ownerAccount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "license_type", nullable = false, length = 50)
+    private LicenseType licenseType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by_account_id")
@@ -38,7 +43,7 @@ public class BusinessLicense {
     @Column(name = "issue_date", nullable = false)
     private LocalDate issueDate;
 
-    @Column(name = "expire_date", nullable = false)
+    @Column(name = "expire_date", nullable = true)
     private LocalDate expireDate;
 
     @Column(name = "document_url", nullable = false)
