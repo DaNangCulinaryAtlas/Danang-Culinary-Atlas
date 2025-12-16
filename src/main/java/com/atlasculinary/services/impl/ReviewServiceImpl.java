@@ -49,11 +49,7 @@ public class ReviewServiceImpl implements ReviewService {
         // Notifications
         notificationService.notifyVendorNewUserReview(reviewSaved.getReviewId());
         // RestaurantStats
-        restaurantStatsService.updateStatsOnReviewEvent(
-                restaurantId,
-                null,
-                newRating
-        );
+        restaurantStatsService.handleNewReview(restaurantId, newRating);
         return reviewMapper.toDto(reviewSaved);
     }
 
@@ -77,11 +73,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         Integer newRating = reviewUpdated.getRating();
         // RestaurantStats
-        restaurantStatsService.updateStatsOnReviewEvent(
-                restaurantId,
-                oldRating,
-                newRating
-        );
+        restaurantStatsService.handleUpdatedReview(restaurantId, oldRating, newRating);
         return reviewMapper.toDto(reviewUpdated);
     }
 
@@ -100,11 +92,7 @@ public class ReviewServiceImpl implements ReviewService {
             throw new SecurityException("Bạn không có quyền sửa bình luận này.");
         }
         // RestaurantStats
-        restaurantStatsService.updateStatsOnReviewEvent(
-                restaurantId,
-                oldRating,
-                null
-        );
+        restaurantStatsService.handleDeleteReview(restaurantId, oldRating);
         reviewRepository.delete(review);
     }
 

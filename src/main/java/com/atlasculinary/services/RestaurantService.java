@@ -22,6 +22,19 @@ public interface RestaurantService {
 
     Page<RestaurantDto> getAllRestaurants(int page, int size, String sortBy, String sortDirection);
 
+    Page<RestaurantDto> searchRestaurants(
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection,
+            String keyword,         // Tìm theo tên quán
+            String dishName,        // Tìm theo tên món
+            List<Long> cuisineIds,  // Tìm theo Tag ID
+            ApprovalStatus approvalStatus, // Lọc trạng thái
+            BigDecimal minRating,
+            BigDecimal maxRating
+    );
+
     Page<RestaurantDto> searchApprovedRestaurants(
             int page,
             int size,
