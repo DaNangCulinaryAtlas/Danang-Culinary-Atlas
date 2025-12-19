@@ -7,9 +7,13 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Data
 public class AddBusinessLicenseRequest {
+
+    @NotNull(message = "Restaurant ID is required")
+    private UUID restaurantId;
 
     @NotNull(message = "License type is required")
     private LicenseType licenseType;

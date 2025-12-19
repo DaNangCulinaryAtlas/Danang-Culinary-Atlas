@@ -31,28 +31,35 @@ public class BusinessLicenseController {
 
     private final BusinessLicenseService businessLicenseService;
 
-    // --- VENDOR ---
-
-    @Operation(summary = "Submit a new business license (Vendor)")
+    @Operation(summary = "Submit a new business license (Vendor) BUSINESS_REGISTRATION FOOD_SAFETY_CERT")
     @PreAuthorize("hasAuthority('LICENSE_CREATE')")
     @PostMapping("/licenses")
     public ResponseEntity<BusinessLicenseDto> createLicense(
             @RequestBody @Valid AddBusinessLicenseRequest request,
             @AuthenticationPrincipal CustomAccountDetails principal) {
-        var ownerAccountId = principal.getAccountId();
-        var licenseDto = businessLicenseService.createLicense(ownerAccountId, request);
+
+        var licenseDto = businessLicenseService.createLicense(principal.getAccountId(), request);
         return new ResponseEntity<>(licenseDto, HttpStatus.CREATED);
     }
 
-    // SỬA: Đổi tên thành getMyLicenses và trả về List
-    @Operation(summary = "Get my business licenses list (Vendor)")
+    @Operation(summary = "Get all licenses owned by current user (Vendor)")
     @PreAuthorize("hasAuthority('LICENSE_VIEW_OWN')")
     @GetMapping("/licenses/me")
     public ResponseEntity<List<BusinessLicenseDto>> getMyLicenses(
             @AuthenticationPrincipal CustomAccountDetails principal) {
-        var ownerAccountId = principal.getAccountId();
-        // Service giờ trả về List
-        List<BusinessLicenseDto> licenseDtos = businessLicenseService.getMyLicenses(ownerAccountId);
+        List<BusinessLicenseDto> licenseDtos = businessLicenseService.getMyLicenses(principal.getAccountId());
+        return ResponseEntity.ok(licenseDtos);
+    }
+
+    @Operation(summary = "Get licenses by Restaurant ID (Vendor/Admin)")
+    @PreAuthorize("hasAuthority('LICENSE_VIEW_OWN') or hasAuthority('LICENSE_VIEW_ALL')")
+    @GetMapping("/restaurants/{restaurantId}/licenses")
+    public ResponseEntity<List<BusinessLicenseDto>> getLicensesByRestaurant(
+            @PathVariable UUID restaurantId,
+            @AuthenticationPrincipal CustomAccountDetails principal) {
+
+        List<BusinessLicenseDto> licenseDtos = businessLicenseService.getLicensesByRestaurant(restaurantId, principal.getAccountId());
+
         return ResponseEntity.ok(licenseDtos);
     }
 
@@ -63,12 +70,20 @@ public class BusinessLicenseController {
             @PathVariable UUID licenseId,
             @RequestBody @Valid UpdateBusinessLicenseRequest request,
             @AuthenticationPrincipal CustomAccountDetails principal) {
-        var ownerAccountId = principal.getAccountId();
-        var licenseDto = businessLicenseService.updateLicense(licenseId, request, ownerAccountId);
+        var licenseDto = businessLicenseService.updateLicense(licenseId, request, principal.getAccountId());
         return ResponseEntity.ok(licenseDto);
     }
 
-    // --- ADMIN ---
+    @Operation(summary = "Delete a license (Admin/Owner)")
+    @PreAuthorize("hasAuthority('LICENSE_DELETE')")
+    @DeleteMapping("/licenses/{licenseId}")
+    public ResponseEntity<Void> deleteLicense(
+            @PathVariable UUID licenseId,
+            @AuthenticationPrincipal CustomAccountDetails principal) {
+
+        businessLicenseService.deleteLicense(licenseId, principal.getAccountId());
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
 
     @Operation(summary = "Get all licenses with filters (Admin)")
     @PreAuthorize("hasAuthority('LICENSE_VIEW_ALL')")
@@ -79,11 +94,10 @@ public class BusinessLicenseController {
             @RequestParam(defaultValue = "issueDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection,
 
-
-            @Parameter(description = "Filter by license type (BUSINESS_REGISTRATION, FOOD_SAFETY_CERT)")
+            @Parameter(description = "Filter by license type")
             @RequestParam(required = false) LicenseType licenseType,
 
-            @Parameter(description = "Filter by approval status (PENDING, APPROVED, REJECTED)")
+            @Parameter(description = "Filter by approval status")
             @RequestParam(required = false) ApprovalStatus approvalStatus) {
 
         Page<BusinessLicenseDto> result = businessLicenseService.getAllLicenses(
@@ -92,11 +106,14 @@ public class BusinessLicenseController {
         return ResponseEntity.ok(result);
     }
 
-    @Operation(summary = "Get license detail by ID (Admin)")
-    @PreAuthorize("hasAuthority('LICENSE_VIEW_ALL')")
-    @GetMapping("/admin/licenses/{licenseId}")
-    public ResponseEntity<BusinessLicenseDto> getLicenseById(@PathVariable UUID licenseId) {
-        var licenseDto = businessLicenseService.getLicenseById(licenseId);
+    @Operation(summary = "Get license detail by ID (Admin & Owner)")
+    @PreAuthorize("hasAuthority('LICENSE_VIEW_ALL') or hasAuthority('LICENSE_VIEW_OWN')")
+    @GetMapping("/licenses/{licenseId}")
+    public ResponseEntity<BusinessLicenseDto> getLicenseById(
+            @PathVariable UUID licenseId,
+            @AuthenticationPrincipal CustomAccountDetails principal) {
+
+        var licenseDto = businessLicenseService.getLicenseById(licenseId, principal.getAccountId());
         return ResponseEntity.ok(licenseDto);
     }
 
@@ -108,19 +125,7 @@ public class BusinessLicenseController {
             @RequestBody @Valid UpdateLicenseStatusRequest request,
             @AuthenticationPrincipal CustomAccountDetails principal) {
 
-        var adminAccountId = principal.getAccountId();
-        var updatedLicense = businessLicenseService.updateApprovalStatus(adminAccountId, licenseId, request);
+        var updatedLicense = businessLicenseService.updateApprovalStatus(principal.getAccountId(), licenseId, request);
         return ResponseEntity.ok(updatedLicense);
-    }
-
-    @Operation(summary = "Delete a license (Admin)")
-    @PreAuthorize("hasAuthority('LICENSE_DELETE')")
-    @DeleteMapping("/admin/licenses/{licenseId}")
-    public ResponseEntity<Void> deleteLicense(
-            @PathVariable UUID licenseId,
-            @AuthenticationPrincipal CustomAccountDetails principal) {
-
-        businessLicenseService.deleteLicense(licenseId, principal.getAccountId());
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

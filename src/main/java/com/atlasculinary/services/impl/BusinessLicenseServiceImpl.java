@@ -3,11 +3,13 @@ package com.atlasculinary.services.impl;
 import com.atlasculinary.dtos.*;
 import com.atlasculinary.entities.Account;
 import com.atlasculinary.entities.BusinessLicense;
+import com.atlasculinary.entities.Restaurant;
 import com.atlasculinary.enums.ApprovalStatus;
 import com.atlasculinary.enums.LicenseType;
 import com.atlasculinary.mappers.BusinessLicenseMapper;
 import com.atlasculinary.repositories.AccountRepository;
 import com.atlasculinary.repositories.BusinessLicenseRepository;
+import com.atlasculinary.repositories.RestaurantRepository;
 import com.atlasculinary.services.AccountService;
 import com.atlasculinary.services.BusinessLicenseService;
 import lombok.RequiredArgsConstructor;
@@ -27,37 +29,45 @@ import java.util.UUID;
 public class BusinessLicenseServiceImpl implements BusinessLicenseService {
 
     private final BusinessLicenseRepository businessLicenseRepository;
+    private final RestaurantRepository restaurantRepository; // <-- Cần thêm cái này
     private final AccountRepository accountRepository;
     private final BusinessLicenseMapper businessLicenseMapper;
     private final AccountService accountService;
 
     @Override
     @Transactional
-    public BusinessLicenseDto createLicense(UUID ownerId, AddBusinessLicenseRequest request) {
-        // 1. Kiểm tra User tồn tại
-        Account owner = accountRepository.findById(ownerId)
-                .orElseThrow(() -> new RuntimeException("Owner account not found"));
+    public BusinessLicenseDto createLicense(UUID requesterId, AddBusinessLicenseRequest request) {
+        // 1. Tìm Restaurant dựa trên ID trong request
+        Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId())
+                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
 
-        // 2. Kiểm tra trùng số giấy phép (Unique Constraint)
+        // 2. Kiểm tra Quyền: Người tạo (requesterId) phải là chủ sở hữu của Nhà hàng này
+        if (!restaurant.getOwnerAccount().getAccountId().equals(requesterId)) {
+            throw new RuntimeException("You do not have permission to add license for this restaurant.");
+        }
+
+        // 3. Kiểm tra trùng số giấy phép (Unique Constraint - Global)
         if (businessLicenseRepository.existsByLicenseNumber(request.getLicenseNumber())) {
             throw new RuntimeException("License number already exists in the system.");
         }
 
-        // 3. Kiểm tra xem User đã có loại giấy tờ này chưa
-        // (Một user chỉ được có 1 bản ghi cho BUSINESS_REGISTRATION, 1 bản cho FOOD_SAFETY_CERT...)
-        if (businessLicenseRepository.existsByOwnerAccount_AccountIdAndLicenseType(ownerId, request.getLicenseType())) {
-            throw new RuntimeException("You already have a license of type: " + request.getLicenseType());
+        // 4. Kiểm tra xem NHÀ HÀNG này đã có loại giấy tờ này chưa
+        if (businessLicenseRepository.existsByRestaurant_RestaurantIdAndLicenseType(
+                request.getRestaurantId(), request.getLicenseType())) {
+            throw new RuntimeException("This restaurant already has a license of type: " + request.getLicenseType());
         }
 
-        // 4. Validate Logic nghiệp vụ riêng cho từng loại giấy
+        // 5. Validate Logic nghiệp vụ riêng
         if (request.getLicenseType() == LicenseType.FOOD_SAFETY_CERT && request.getExpireDate() == null) {
             throw new IllegalArgumentException("Food Safety Certificate must have an expiration date.");
         }
-        // Đối với BUSINESS_REGISTRATION, expireDate có thể null (vô thời hạn), không cần check.
 
-        // 5. Mapping và Lưu
+        // 6. Mapping và Set quan hệ
         BusinessLicense license = businessLicenseMapper.toEntity(request);
-        license.setOwnerAccount(owner);
+
+        // QUAN TRỌNG: Set Restaurant thủ công (vì Mapper ignore)
+        license.setRestaurant(restaurant);
+
         license.setApprovalStatus(ApprovalStatus.PENDING);
 
         BusinessLicense savedLicense = businessLicenseRepository.save(license);
@@ -66,29 +76,30 @@ public class BusinessLicenseServiceImpl implements BusinessLicenseService {
 
     @Override
     @Transactional
-    public BusinessLicenseDto updateLicense(UUID licenseId, UpdateBusinessLicenseRequest request, UUID ownerId) {
+    public BusinessLicenseDto updateLicense(UUID licenseId, UpdateBusinessLicenseRequest request, UUID requesterId) {
         BusinessLicense license = businessLicenseRepository.findById(licenseId)
                 .orElseThrow(() -> new RuntimeException("License not found"));
 
-        // Check quyền sở hữu
-        if (!license.getOwnerAccount().getAccountId().equals(ownerId)) {
+        // 1. Check quyền: Requester phải là chủ sở hữu của nhà hàng gắn với giấy phép này
+        if (!license.getRestaurant().getOwnerAccount().getAccountId().equals(requesterId)) {
             throw new RuntimeException("You do not have permission to update this license.");
         }
 
-        // Chỉ được sửa khi chưa duyệt hoặc bị từ chối
+        // 2. Chỉ được sửa khi chưa duyệt hoặc bị từ chối (hoặc Pending)
+        // Nếu đã Approved thì thường không cho sửa, bắt phải tạo mới hoặc quy trình gia hạn
         if (license.getApprovalStatus() == ApprovalStatus.APPROVED) {
             throw new RuntimeException("Cannot update an approved license.");
         }
 
-        // Mapping update (ignore null values)
+        // 3. Mapping update
         businessLicenseMapper.updateFromRequest(request, license);
 
-        // Validate lại sau khi update (đề phòng trường hợp user set expireDate = null cho giấy ATTP)
+        // 4. Validate lại expireDate
         if (license.getLicenseType() == LicenseType.FOOD_SAFETY_CERT && license.getExpireDate() == null) {
             throw new IllegalArgumentException("Food Safety Certificate must have an expiration date.");
         }
 
-        // Reset trạng thái về PENDING để Admin duyệt lại
+        // 5. Reset trạng thái
         license.setApprovalStatus(ApprovalStatus.PENDING);
         license.setRejectionReason(null);
         license.setApprovedByAccount(null);
@@ -99,15 +110,41 @@ public class BusinessLicenseServiceImpl implements BusinessLicenseService {
 
     @Override
     public List<BusinessLicenseDto> getMyLicenses(UUID ownerId) {
-        // Trả về danh sách tất cả giấy phép của user
-        List<BusinessLicense> licenses = businessLicenseRepository.findAllByOwnerAccount_AccountId(ownerId);
+        // Lấy tất cả giấy phép thuộc về các nhà hàng của Owner này
+        List<BusinessLicense> licenses = businessLicenseRepository.findAllByRestaurant_OwnerAccount_AccountId(ownerId);
         return businessLicenseMapper.toDtoList(licenses);
     }
 
     @Override
-    public BusinessLicenseDto getLicenseById(UUID licenseId) {
+    public List<BusinessLicenseDto> getLicensesByRestaurant(UUID restaurantId, UUID requesterId) {
+
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+
+        boolean isOwner = restaurant.getOwnerAccount().getAccountId().equals(requesterId);
+        boolean isAdmin = accountService.isAdmin(requesterId); // Giả sử bạn có hàm check admin
+
+        if (!isOwner && !isAdmin) {
+            throw new RuntimeException("Access denied. You do not own this restaurant.");
+        }
+
+        List<BusinessLicense> licenses = businessLicenseRepository.findAllByRestaurant_RestaurantId(restaurantId);
+        return businessLicenseMapper.toDtoList(licenses);
+    }
+
+    @Override
+    public BusinessLicenseDto getLicenseById(UUID licenseId, UUID requesterId) {
         BusinessLicense license = businessLicenseRepository.findById(licenseId)
                 .orElseThrow(() -> new RuntimeException("License not found"));
+
+        boolean isAdmin = accountService.isAdmin(requesterId);
+        boolean isOwner = license.getRestaurant().getOwnerAccount().getAccountId().equals(requesterId);
+
+        if (!isAdmin && !isOwner) {
+            throw new RuntimeException("Access denied. You do not own this license.");
+        }
+
+
         return businessLicenseMapper.toDto(license);
     }
 
@@ -157,15 +194,13 @@ public class BusinessLicenseServiceImpl implements BusinessLicenseService {
         BusinessLicense license = businessLicenseRepository.findById(licenseId)
                 .orElseThrow(() -> new RuntimeException("License not found"));
 
-        // Logic check quyền: Admin được xóa mọi cái, Owner chỉ được xóa của mình
-        // Giả sử logic check quyền đã được xử lý ở Controller hoặc Security Context,
-        // hoặc thêm logic đơn giản ở đây:
+        // Check quyền:
+        boolean isAdmin = accountService.isAdmin(requesterId); // Giả sử service này có method check role
+        boolean isOwner = license.getRestaurant().getOwnerAccount().getAccountId().equals(requesterId);
 
-        boolean isAdmin = accountService.isAdmin(requesterId);
-        if (!isAdmin && !license.getOwnerAccount().getAccountId().equals(requesterId)) {
-             throw new RuntimeException("Permission denied");
+        if (!isAdmin && !isOwner) {
+            throw new RuntimeException("Permission denied. Only Admin or Restaurant Owner can delete.");
         }
-
 
         businessLicenseRepository.delete(license);
     }

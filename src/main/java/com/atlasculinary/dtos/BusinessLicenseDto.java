@@ -10,9 +10,15 @@ import java.util.UUID;
 @Data
 public class BusinessLicenseDto {
     private UUID licenseId;
+
+    private UUID restaurantId;
+    private String restaurantName;
+
     private UUID ownerAccountId;
     private String ownerEmail;
+
     private UUID approvedByAccountId;
+    private String approvedByEmail;
 
     private LicenseType licenseType;
     private String licenseNumber;

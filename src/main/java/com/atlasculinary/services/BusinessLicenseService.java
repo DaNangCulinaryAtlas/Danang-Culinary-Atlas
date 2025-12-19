@@ -13,18 +13,21 @@ import java.util.UUID;
 
 public interface BusinessLicenseService {
 
-    // Vendor: Tạo giấy phép mới
-    BusinessLicenseDto createLicense(UUID ownerId, AddBusinessLicenseRequest request);
+    // Vendor: Tạo giấy phép mới cho một nhà hàng cụ thể
+    BusinessLicenseDto createLicense(UUID requesterId, AddBusinessLicenseRequest request);
 
     // Vendor: Cập nhật thông tin giấy phép
-    BusinessLicenseDto updateLicense(UUID licenseId, UpdateBusinessLicenseRequest request, UUID ownerId);
+    BusinessLicenseDto updateLicense(UUID licenseId, UpdateBusinessLicenseRequest request, UUID requesterId);
 
-    // Vendor: Xem danh sách giấy phép của chính mình (Trả về List)
+    // Vendor: Xem danh sách giấy phép của tất cả nhà hàng mình sở hữu
     List<BusinessLicenseDto> getMyLicenses(UUID ownerId);
 
-    // Admin: Xem chi tiết giấy phép bất kỳ
-    BusinessLicenseDto getLicenseById(UUID licenseId);
+    // Vendor/Public: Xem giấy phép của 1 nhà hàng cụ thể (Optional - bổ sung thêm cho tiện)
+    List<BusinessLicenseDto> getLicensesByRestaurant(UUID restaurantId, UUID requesterId);
 
+    BusinessLicenseDto getLicenseById(UUID licenseId, UUID requesterId);
+
+    // Admin: Lọc danh sách
     Page<BusinessLicenseDto> getAllLicenses(int page, int size, String sortBy, String sortDirection,
                                             LicenseType licenseType, ApprovalStatus approvalStatus);
 
