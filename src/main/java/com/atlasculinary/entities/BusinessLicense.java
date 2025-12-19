@@ -1,7 +1,7 @@
 package com.atlasculinary.entities;
 
 import com.atlasculinary.enums.ApprovalStatus;
-import com.atlasculinary.enums.LicenseType; // Import Enum mới
+import com.atlasculinary.enums.LicenseType;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,8 +26,8 @@ public class BusinessLicense {
     private UUID licenseId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_account_id", nullable = false)
-    private Account ownerAccount;
+    @JoinColumn(name = "restaurant_id", nullable = false)
+    private Restaurant restaurant;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "license_type", nullable = false, length = 50)
@@ -37,7 +37,7 @@ public class BusinessLicense {
     @JoinColumn(name = "approved_by_account_id")
     private Account approvedByAccount;
 
-    @Column(name = "license_number", nullable = false, unique = true, length = 50)
+    @Column(name = "license_number", nullable = false, length = 50)
     private String licenseNumber;
 
     @Column(name = "issue_date", nullable = false)
