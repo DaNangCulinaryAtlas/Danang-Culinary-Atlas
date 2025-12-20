@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ActionDto {
     private Long actionId;
-    private String actionName;
     private String actionCode;
+    private String actionName;
+    private Boolean requiresLicense;
 }

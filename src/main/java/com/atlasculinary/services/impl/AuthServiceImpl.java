@@ -72,6 +72,7 @@ public class AuthServiceImpl implements AuthService {
     accountRoleMap.setRole(role);
     accountRoleMap.setAccountId(savedAccount.getAccountId());
     accountRoleMap.setRoleId(role.getRoleId());
+
     accountRoleMapRepository.save(accountRoleMap);
 
     // Tạo  tương ứng với role

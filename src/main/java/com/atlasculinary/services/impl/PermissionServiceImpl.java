@@ -111,4 +111,13 @@ public class PermissionServiceImpl implements PermissionService {
         dto.setActions(actionDtos);
         return dto;
     }
+
+    @Override
+    public void updateActionConfig(Long actionId, boolean requiresLicense) {
+        Action action = actionRepository.findById(actionId)
+                .orElseThrow(() -> new RuntimeException("Action not found"));
+
+        action.setRequiresLicense(requiresLicense);
+        actionRepository.save(action);
+    }
 }
