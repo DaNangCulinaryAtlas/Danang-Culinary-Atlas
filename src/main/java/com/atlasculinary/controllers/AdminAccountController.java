@@ -24,6 +24,23 @@ public class AdminAccountController {
 
     private final UserManagementService userManagementService;
 
+    @Operation(summary = "Get all accounts (users, vendors, admins)")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse> getAllAccounts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AccountListDto> accounts = userManagementService.getAllAccounts(pageable);
+        
+        ApiResponse response = ApiResponse.success(
+            "All accounts retrieved successfully",
+            accounts
+        );
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(summary = "Get list of users")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     @GetMapping("/users")

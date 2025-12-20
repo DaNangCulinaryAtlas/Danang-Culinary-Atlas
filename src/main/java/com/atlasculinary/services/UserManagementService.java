@@ -21,6 +21,11 @@ public interface UserManagementService {
     Page<AccountListDto> getVendors(AccountStatus status, String search, Pageable pageable);
     
     /**
+     * Get all accounts (users, vendors, admins) with pagination
+     */
+    Page<AccountListDto> getAllAccounts(Pageable pageable);
+    
+    /**
      * Get account detail by ID
      */
     AccountDetailDto getAccountDetail(UUID accountId);

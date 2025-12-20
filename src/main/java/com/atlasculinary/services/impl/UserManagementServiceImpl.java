@@ -44,6 +44,13 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<AccountListDto> getAllAccounts(Pageable pageable) {
+        Page<Account> accounts = accountRepository.findAll(pageable);
+        return accounts.map(this::mapToAccountListDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public AccountDetailDto getAccountDetail(UUID accountId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
