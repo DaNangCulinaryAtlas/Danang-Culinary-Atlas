@@ -43,6 +43,24 @@ public class AdminAccountController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Search accounts by keyword")
+    @PreAuthorize("hasAuthority('ADMIN_VIEW')")
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse> searchAccounts(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<AccountListDto> accounts = userManagementService.searchAccounts(keyword, pageable);
+        
+        ApiResponse response = ApiResponse.success(
+            "Accounts search completed successfully",
+            accounts
+        );
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(summary = "Get list of users")
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     @GetMapping("/users")

@@ -48,4 +48,15 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
   Page<Account> findAllWithFilters(@Param("status") AccountStatus status,
                                     @Param("roleName") String roleName,
                                     Pageable pageable);
+  
+  @Query("SELECT DISTINCT a FROM Account a " +
+         "LEFT JOIN a.accountRoleMapSet arm " +
+         "LEFT JOIN arm.role r " +
+         "WHERE (:search IS NULL OR :search = '' OR " +
+         "LOWER(a.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+         "LOWER(a.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+         "AND NOT EXISTS (SELECT 1 FROM AccountRoleMap arm2 JOIN arm2.role r2 " +
+         "WHERE arm2.account = a AND r2.roleName = 'SUPER_ADMIN') " +
+         "ORDER BY a.createdAt DESC")
+  Page<Account> searchAccounts(@Param("search") String search, Pageable pageable);
 }

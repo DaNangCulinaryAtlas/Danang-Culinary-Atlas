@@ -26,6 +26,11 @@ public interface UserManagementService {
     Page<AccountListDto> getAllAccounts(AccountStatus status, String role, Pageable pageable);
     
     /**
+     * Search accounts by keyword (email or fullName)
+     */
+    Page<AccountListDto> searchAccounts(String search, Pageable pageable);
+    
+    /**
      * Get account detail by ID
      */
     AccountDetailDto getAccountDetail(UUID accountId);
