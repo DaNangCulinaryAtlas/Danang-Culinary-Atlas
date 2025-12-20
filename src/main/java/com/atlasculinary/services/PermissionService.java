@@ -8,31 +8,38 @@ import com.atlasculinary.dtos.UpdateRolePermissionRequest;
 import java.util.List;
 
 public interface PermissionService {
-    
+
     /**
      * Get all available actions in the system
      */
     List<ActionDto> getAllActions();
-    
+
     /**
      * Get all roles in the system
      */
     List<RoleDto> getAllRoles();
-    
+
     /**
      * Get all roles with their assigned permissions
      */
     List<RolePermissionDto> getAllRolesWithPermissions();
-    
+
     /**
      * Get permissions for a specific role
      */
     RolePermissionDto getRolePermissions(Long roleId);
-    
+
     /**
-     * Update permissions for a specific role
+     * Update permissions (assign/remove actions) for a specific role.
+     * Note: New permissions will default to requiresLicense = true (Safe mode).
      */
     RolePermissionDto updateRolePermissions(UpdateRolePermissionRequest request);
 
-    void updateActionConfig(Long actionId, boolean requiresLicense);
+    /**
+     * Update the sensitivity configuration (requiresLicense) for a specific Role-Action pair.
+     * * @param roleId The ID of the role
+     * @param actionId The ID of the action
+     * @param requiresLicense true if the user needs to be licensed to use this action, false otherwise
+     */
+    void updateRoleActionConfig(Long roleId, Long actionId, boolean requiresLicense);
 }

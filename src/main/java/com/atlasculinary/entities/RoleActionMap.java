@@ -32,4 +32,7 @@ public class RoleActionMap {
     @MapsId("actionId")
     @JoinColumn(name = "action_id")
     private Action action;
+
+    @Column(name = "requires_license", nullable = false)
+    private Boolean requiresLicense = true;
 }

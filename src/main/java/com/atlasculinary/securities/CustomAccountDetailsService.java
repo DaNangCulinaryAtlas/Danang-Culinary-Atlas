@@ -2,7 +2,8 @@ package com.atlasculinary.securities;
 
 import com.atlasculinary.entities.Account;
 import com.atlasculinary.entities.AccountRoleMap;
-import com.atlasculinary.entities.Action; // Import Action
+import com.atlasculinary.entities.Action;
+import com.atlasculinary.entities.RoleActionMap; // Import entity bảng trung gian
 import com.atlasculinary.repositories.AccountRepository;
 import com.atlasculinary.repositories.RoleActionMapRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,32 +33,34 @@ public class CustomAccountDetailsService implements UserDetailsService {
 
         List<GrantedAuthority> authorities = new ArrayList<>();
 
-        // Duyệt qua từng Role của User
-        for (AccountRoleMap map : account.getAccountRoleMapSet()) {
-            String roleName = map.getRole().getRoleName();
+        // Duyệt qua từng Role mà User sở hữu (Ví dụ: VENDOR, USER)
+        for (AccountRoleMap accountRoleMap : account.getAccountRoleMapSet()) {
+            String roleName = accountRoleMap.getRole().getRoleName();
 
-            // 1. Kiểm tra user có được cấp phép (Active) ở Role này không?
-            boolean isUserLicensed = Boolean.TRUE.equals(map.getLicensed());
+            // 1. Kiểm tra trạng thái cấp phép (Licensed) của User đối với Role này
 
-            // Add Role gốc (VD: ROLE_VENDOR)
+            boolean isUserLicensed = Boolean.TRUE.equals(accountRoleMap.getLicensed());
+
             authorities.add(new SimpleGrantedAuthority("ROLE_" + roleName));
 
-            // 2. Dùng hàm MỚI VIẾT bên Repository để lấy List<Action>
-            List<Action> actions = roleActionMapRepository.findActionsByRoleId(map.getRoleId());
+            // 2. Lấy danh sách Quyền từ bảng trung gian (RoleActionMap)
 
-            // 3. Logic lọc quyền
-            for (Action action : actions) {
-                // Check xem Action này có yêu cầu bằng lái không
-                boolean requiresLicense = Boolean.TRUE.equals(action.getRequiresLicense());
+            List<RoleActionMap> rolePermissions = roleActionMapRepository.findByRoleIdWithAction(accountRoleMap.getRoleId());
 
-                // Cấp quyền nếu: User đã Active HOẶC Action này không yêu cầu Active
+            // 3. Logic lọc quyền (Filter Logic)
+            for (RoleActionMap ram : rolePermissions) {
+                Action action = ram.getAction();
+
+                boolean requiresLicense = Boolean.TRUE.equals(ram.getRequiresLicense());
+
+
                 if (isUserLicensed || !requiresLicense) {
                     authorities.add(new SimpleGrantedAuthority(action.getActionCode()));
                 }
             }
         }
 
-        // Truyền list authorities ĐÃ LỌC vào UserDetails
+        // Truyền list authorities ĐÃ ĐƯỢC LỌC vào UserDetails
         return new CustomAccountDetails(account, authorities);
     }
 }
