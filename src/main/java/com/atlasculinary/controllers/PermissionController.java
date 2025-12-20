@@ -5,7 +5,6 @@ import com.atlasculinary.services.PermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +16,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Permission Management", description = "APIs for managing role-based permissions")
 public class PermissionController {
-
     private final PermissionService permissionService;
 
     @GetMapping("/actions")
@@ -53,15 +51,15 @@ public class PermissionController {
         return ResponseEntity.ok(ApiResponse.success("Role permissions updated successfully", updatedPermissions));
     }
 
-    @Operation(summary = "Cấu hình độ nhạy cảm của Action",
-            description = "Bật/Tắt yêu cầu giấy phép cho hành động này. Nếu True, user chưa active sẽ không dùng được.")
-    @PatchMapping("/actions/{actionId}/configuration")
+    @Operation(summary = "Cấu hình mặc đinh- nâng cao Action cho một Role cụ thể")
+    @PatchMapping("/roles/{roleId}/actions/{actionId}/configuration")
     @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
-    public ResponseEntity<ApiResponse> updateActionConfig(
+    public ResponseEntity<ApiResponse> updateRoleActionConfig(
+            @PathVariable Long roleId,
             @PathVariable Long actionId,
             @RequestParam boolean requiresLicense) {
 
-        permissionService.updateActionConfig(actionId, requiresLicense);
+        permissionService.updateRoleActionConfig(roleId, actionId, requiresLicense);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật cấu hình thành công", null));
     }
 }

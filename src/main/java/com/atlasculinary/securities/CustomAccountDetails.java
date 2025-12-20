@@ -24,6 +24,7 @@ public class CustomAccountDetails implements UserDetails {
         this.password = account.getPassword();
         this.authorities = authorities;
 
+        // Map trạng thái Account sang chuẩn Spring Security
         this.accountNonLocked = !account.getStatus().name().equals("BLOCKED");
         this.enabled = !account.getStatus().name().equals("DELETED");
     }

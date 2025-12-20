@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import org.hibernate.annotations.UuidGenerator; // Cần import cho UUID tự sinh
 
-import java.util.UUID; // Cần import UUID
 
 @Entity
 @Table(name = "role")
