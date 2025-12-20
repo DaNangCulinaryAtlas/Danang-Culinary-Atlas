@@ -7,9 +7,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ActionDto {
-    private Long actionId;
-    private String actionCode;
-    private String actionName;
-    private Boolean requiresLicense;
+public class UserRoleDto {
+    private Long roleId;
+    private String roleName;
+    private String description;
+
+    private Boolean licensed;
 }

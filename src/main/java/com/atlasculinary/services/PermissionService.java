@@ -33,4 +33,6 @@ public interface PermissionService {
      * Update permissions for a specific role
      */
     RolePermissionDto updateRolePermissions(UpdateRolePermissionRequest request);
+
+    void updateActionConfig(Long actionId, boolean requiresLicense);
 }

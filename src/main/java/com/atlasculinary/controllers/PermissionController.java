@@ -28,14 +28,6 @@ public class PermissionController {
         return ResponseEntity.ok(ApiResponse.success("Actions retrieved successfully", actions));
     }
 
-    @GetMapping("/roles")
-    @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
-    @Operation(summary = "Get all roles", description = "Retrieve all roles in the system")
-    public ResponseEntity<ApiResponse> getAllRoles() {
-        List<RoleDto> roles = permissionService.getAllRoles();
-        return ResponseEntity.ok(ApiResponse.success("Roles retrieved successfully", roles));
-    }
-
     @GetMapping("/roles-with-permissions")
     @PreAuthorize("hasAuthority('PERMISSION_VIEW')")
     @Operation(summary = "Get all roles with their permissions", description = "Retrieve all roles along with their assigned actions/permissions")
@@ -59,5 +51,17 @@ public class PermissionController {
             @RequestBody UpdateRolePermissionRequest request) {
         RolePermissionDto updatedPermissions = permissionService.updateRolePermissions(request);
         return ResponseEntity.ok(ApiResponse.success("Role permissions updated successfully", updatedPermissions));
+    }
+
+    @Operation(summary = "Cấu hình độ nhạy cảm của Action",
+            description = "Bật/Tắt yêu cầu giấy phép cho hành động này. Nếu True, user chưa active sẽ không dùng được.")
+    @PatchMapping("/actions/{actionId}/configuration")
+    @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
+    public ResponseEntity<ApiResponse> updateActionConfig(
+            @PathVariable Long actionId,
+            @RequestParam boolean requiresLicense) {
+
+        permissionService.updateActionConfig(actionId, requiresLicense);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật cấu hình thành công", null));
     }
 }
