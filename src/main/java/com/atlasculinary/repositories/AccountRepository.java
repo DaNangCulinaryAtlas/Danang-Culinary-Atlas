@@ -33,4 +33,19 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
                                     @Param("status") AccountStatus status, 
                                     @Param("search") String search, 
                                     Pageable pageable);
+  
+  @Query("SELECT a FROM Account a WHERE a.status = :status ORDER BY a.createdAt DESC")
+  Page<Account> findByStatus(@Param("status") AccountStatus status, Pageable pageable);
+  
+  @Query("SELECT DISTINCT a FROM Account a " +
+         "LEFT JOIN a.accountRoleMapSet arm " +
+         "LEFT JOIN arm.role r " +
+         "WHERE (:status IS NULL OR a.status = :status) " +
+         "AND (:roleName IS NULL OR :roleName = '' OR r.roleName = :roleName) " +
+         "AND NOT EXISTS (SELECT 1 FROM AccountRoleMap arm2 JOIN arm2.role r2 " +
+         "WHERE arm2.account = a AND r2.roleName = 'SUPER_ADMIN') " +
+         "ORDER BY a.createdAt DESC")
+  Page<Account> findAllWithFilters(@Param("status") AccountStatus status,
+                                    @Param("roleName") String roleName,
+                                    Pageable pageable);
 }

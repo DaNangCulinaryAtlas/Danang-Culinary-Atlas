@@ -28,11 +28,13 @@ public class AdminAccountController {
     @PreAuthorize("hasAuthority('ADMIN_VIEW')")
     @GetMapping("/all")
     public ResponseEntity<ApiResponse> getAllAccounts(
+            @RequestParam(required = false) AccountStatus status,
+            @RequestParam(required = false) String role,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         
         Pageable pageable = PageRequest.of(page, size);
-        Page<AccountListDto> accounts = userManagementService.getAllAccounts(pageable);
+        Page<AccountListDto> accounts = userManagementService.getAllAccounts(status, role, pageable);
         
         ApiResponse response = ApiResponse.success(
             "All accounts retrieved successfully",

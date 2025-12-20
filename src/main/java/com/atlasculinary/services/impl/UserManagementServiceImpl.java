@@ -44,8 +44,8 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AccountListDto> getAllAccounts(Pageable pageable) {
-        Page<Account> accounts = accountRepository.findAll(pageable);
+    public Page<AccountListDto> getAllAccounts(AccountStatus status, String role, Pageable pageable) {
+        Page<Account> accounts = accountRepository.findAllWithFilters(status, role, pageable);
         return accounts.map(this::mapToAccountListDto);
     }
 
@@ -129,10 +129,10 @@ public class UserManagementServiceImpl implements UserManagementService {
         dto.setStatus(account.getStatus());
         dto.setCreatedAt(account.getCreatedAt());
         
-        // Get role
+        // Get role (exclude SUPER_ADMIN)
         String role = account.getAccountRoleMapSet().stream()
                 .map(arm -> arm.getRole().getRoleName())
-                .filter(r -> r.equals("USER") || r.equals("VENDOR"))
+                .filter(r -> !r.equals("SUPER_ADMIN"))
                 .findFirst()
                 .orElse(null);
         dto.setRole(role);
