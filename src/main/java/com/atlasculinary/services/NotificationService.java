@@ -3,6 +3,7 @@ package com.atlasculinary.services;
 import com.atlasculinary.dtos.*;
 import com.atlasculinary.enums.ApprovalStatus;
 import com.atlasculinary.enums.NotificationType;
+import com.atlasculinary.entities.Report;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.UUID;
@@ -42,7 +43,7 @@ public interface NotificationService {
 
     void notifyVendorNewUserReview(UUID reviewId);
 
-    void notifyAdminNewReport(UUID reportId);
+    void notifyAdminNewReport(Report report);
 
 //    void notifyUserVendorReply(UUID replyId);
 }

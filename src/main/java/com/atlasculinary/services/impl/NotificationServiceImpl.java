@@ -383,18 +383,22 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Async
     @Transactional
-    public void notifyAdminNewReport(UUID reportId) {
+    public void notifyAdminNewReport(Report report) {
         try {
-            // Lấy thông tin Report
-            Report report = reportRepository.findById(reportId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Report not found with ID: " + reportId));
-
             // Lấy thông tin hiển thị (Sử dụng Helper Method trong Entity Report)
-            String targetName = report.getRestaurant().getName();
+            String targetName = "Unknown";
+            if (report.getRestaurant() != null) {
+                targetName = report.getRestaurant().getName();
+            } else if (report.getReview() != null) {
+                targetName = "Review ID: " + report.getReview().getReviewId();
+            }
+            
             String reportTypeStr = report.getReportType().toString();
             String reason = report.getReason();
             String reporterEmail = report.getReporterAccount().getEmail();
+            UUID reportId = report.getReportId();
 
             // Chuẩn bị nội dung thông báo
             String notiTitle = "Báo cáo vi phạm mới: " + reportTypeStr;
@@ -430,8 +434,6 @@ public class NotificationServiceImpl implements NotificationService {
                 }
             }
 
-        } catch (ResourceNotFoundException e) {
-            LOGGER.warning("Không tìm thấy Report với ID: " + reportId);
         } catch (Exception e) {
             LOGGER.severe("Lỗi hệ thống: " + e.getMessage());
         }

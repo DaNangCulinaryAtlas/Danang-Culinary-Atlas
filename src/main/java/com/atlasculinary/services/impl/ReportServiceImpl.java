@@ -13,6 +13,8 @@ import com.atlasculinary.repositories.DishRepository;
 import com.atlasculinary.repositories.ReviewRepository;
 import com.atlasculinary.services.NotificationService;
 import com.atlasculinary.services.ReportService;
+import com.atlasculinary.exceptions.ResourceNotFoundException;
+import com.atlasculinary.exceptions.InvalidRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,26 +44,31 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional
     public ReportResponse createReport(ReportRequest request, String reporterUsername) {
+        if (request.getRestaurantId() == null && request.getReviewId() == null) {
+            throw new InvalidRequestException("Report must target either a restaurant or a review.");
+        }
         Account reporter = accountRepository.findByEmail(reporterUsername).orElseThrow();
         Report report = new Report();
         report.setReporterAccount(reporter);
         if (request.getRestaurantId() != null) {
-            Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId()).orElse(null);
+            Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + request.getRestaurantId()));
             report.setReportType(ReportType.RESTAURANT_REPORT);
             report.setRestaurant(restaurant);
         }
         if (request.getReviewId() != null) {
-            Review review = reviewRepository.findById(request.getReviewId()).orElse(null);
+            Review review = reviewRepository.findById(request.getReviewId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Review not found with id: " + request.getReviewId()));
             report.setReportType(ReportType.REVIEW_REPORT);
             report.setReview(review);
         }
         report.setReason(request.getReason());
         report.setStatus(ReportStatus.PENDING);
         // Lưu xuống DB
-        report = reportRepository.save(report);
+        report = reportRepository.saveAndFlush(report);
 
         try {
-            notificationService.notifyAdminNewReport(report.getReportId());
+            notificationService.notifyAdminNewReport(report);
         } catch (Exception e) {
             LOGGER.warning("Không thể gửi thông báo report tới Admin: " + e.getMessage());
         }
