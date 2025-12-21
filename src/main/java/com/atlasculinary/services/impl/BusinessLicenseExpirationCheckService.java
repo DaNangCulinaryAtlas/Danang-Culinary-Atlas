@@ -29,8 +29,7 @@ public class BusinessLicenseExpirationCheckService {
     private final RestaurantRepository restaurantRepository;
     private final NotificationService notificationService;
     
-   
-    @Scheduled(fixedRate = 10000)
+    @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void checkExpiredLicenses() {
         try {
