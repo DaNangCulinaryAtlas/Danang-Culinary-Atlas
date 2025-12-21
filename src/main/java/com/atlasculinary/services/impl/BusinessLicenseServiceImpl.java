@@ -202,6 +202,11 @@ public class BusinessLicenseServiceImpl implements BusinessLicenseService {
             throw new RuntimeException("Permission denied. Only Admin or Restaurant Owner can delete.");
         }
 
+        // Vendor không được xóa giấy phép đã được duyệt
+        if (!isAdmin && isOwner && license.getApprovalStatus() == ApprovalStatus.APPROVED) {
+            throw new RuntimeException("Không thể xóa giấy phép đã được duyệt. Vui lòng liên hệ quản trị viên.");
+        }
+
         businessLicenseRepository.delete(license);
     }
 }

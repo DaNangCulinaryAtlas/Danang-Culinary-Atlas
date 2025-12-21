@@ -36,4 +36,7 @@ public interface BusinessLicenseRepository extends JpaRepository<BusinessLicense
             @Param("licenseType") LicenseType licenseType,
             @Param("approvalStatus") ApprovalStatus approvalStatus,
             Pageable pageable);
+
+    // 5. Tìm giấy phép theo loại và trạng thái duyệt (dùng cho scheduled task kiểm tra hết hạn)
+    List<BusinessLicense> findByLicenseTypeAndApprovalStatus(LicenseType licenseType, ApprovalStatus approvalStatus);
 }
