@@ -107,6 +107,17 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public LoginResponse login(LoginRequest loginRequest) {
+    // Kiểm tra trạng thái tài khoản trước khi xác thực
+    Account account = accountRepository.findByEmail(loginRequest.getEmail())
+        .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không chính xác"));
+
+    if (account.getStatus() == AccountStatus.BLOCKED) {
+      throw new RuntimeException("Tài khoản của bạn đã bị khóa");
+    }
+    if (account.getStatus() == AccountStatus.DELETED) {
+      throw new RuntimeException("Tài khoản của bạn đã bị xóa");
+    }
+
     try {
       authenticationManager.authenticate(
           new UsernamePasswordAuthenticationToken(
@@ -114,18 +125,6 @@ public class AuthServiceImpl implements AuthService {
               loginRequest.getPassword()
           )
       );
-
-      Account account = accountRepository.findByEmail(loginRequest.getEmail())
-          .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại"));
-
-      if (account.getStatus() == AccountStatus.BLOCKED) {
-        throw new RuntimeException("Tài khoản đã bị khóa");
-      }
-      if (account.getStatus() == AccountStatus.DELETED) {
-        throw new RuntimeException("Tài khoản đã bị xóa");
-      }
-
-
 
       var roleMapList = accountRoleMapRepository.findByAccountIdWithRole(account.getAccountId());
 
